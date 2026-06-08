@@ -4,7 +4,7 @@ import WordCloud from 'wordcloud';
 
 const VIEW_TYPE_STATS = "desktop-stats-view";
 
-// --- 基础虚词过滤库 (提升词云专业感) ---
+// --- 基础虚词过滤库 ---
 const STOP_WORDS = new Set([
     'the', 'and', 'for', 'that', 'this', 'with', 'from', 'https', 'com', 'org', 
     'www', 'are', 'can', 'not', 'you', 'your', 'have', 'was', 'but', 'all', 
@@ -64,7 +64,6 @@ async function analyzeVaultData(app: App) {
         const words = cleanText.match(/[\u4e00-\u9fa5]{2,}|\b[a-zA-Z]{3,}\b/g) || [];
         for (const word of words) {
             const w = word.toLowerCase();
-            // 过滤掉无意义的虚词
             if (!STOP_WORDS.has(w)) {
                 wordCounts.set(w, (wordCounts.get(w) || 0) + 1);
             }
@@ -118,15 +117,15 @@ class DesktopStatsView extends ItemView {
             
             const { chartLabels, chartValues, sortedWords } = await analyzeVaultData(this.app);
 
-            // 1. 苹果风高级折线图绘制
+            // 1. 苹果风丝滑渐变折线图
             if (this.chartInstance) this.chartInstance.destroy();
             
             const ctx = (chartCanvas as HTMLCanvasElement).getContext('2d');
             let gradientFill = 'rgba(0, 122, 255, 0.1)';
             if (ctx) {
                 gradientFill = ctx.createLinearGradient(0, 0, 0, chartWrapper.clientHeight);
-                gradientFill.addColorStop(0, 'rgba(0, 122, 255, 0.35)'); // 顶部科技蓝
-                gradientFill.addColorStop(1, 'rgba(0, 122, 255, 0.0)');  // 底部无缝融入背景
+                gradientFill.addColorStop(0, 'rgba(0, 122, 255, 0.35)'); 
+                gradientFill.addColorStop(1, 'rgba(0, 122, 255, 0.0)');  
             }
 
             this.chartInstance = new Chart(chartCanvas as any, {
@@ -136,48 +135,62 @@ class DesktopStatsView extends ItemView {
                     datasets: [{
                         label: '新增笔记数',
                         data: chartValues,
-                        borderColor: '#007AFF', // 苹果生态经典蓝
+                        borderColor: '#007AFF', 
                         backgroundColor: gradientFill,
                         borderWidth: 2.5,
-                        pointRadius: 0, // 隐藏静态数据点
+                        pointRadius: 0, 
                         pointHoverRadius: 6,
                         pointBackgroundColor: '#FFFFFF',
                         pointBorderColor: '#007AFF',
                         pointBorderWidth: 2,
-                        tension: 0.4, // 极其平滑的曲线
+                        tension: 0.4, 
                         fill: true
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    // 丝滑入场动画配置
+                    animation: {
+                        duration: 1200,
+                        easing: 'easeOutQuart',
+                        active: { duration: 400 }
+                    },
+                    transitions: {
+                        show: { animations: { x: { from: 0 }, y: { from: 0 } } }
+                    },
                     interaction: { mode: 'index', intersect: false },
                     plugins: { 
                         legend: { display: false },
                         tooltip: { 
-                            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                            backdropFilter: 'blur(10px)',
                             padding: 12,
                             cornerRadius: 8,
                             displayColors: false,
+                            titleFont: { size: 14, weight: '600' as const },
+                            bodyFont: { size: 13 },
+                            borderWidth: 1,
+                            borderColor: 'rgba(255, 255, 255, 0.15)'
                         }
                     },
                     scales: { 
                         x: { 
                             display: true, 
-                            grid: { display: false }, // 干掉竖向网格
+                            grid: { display: false }, 
                             ticks: { color: '#8E8E93', maxRotation: 45 } 
                         },
                         y: { 
                             beginAtZero: true, 
                             border: { display: false }, 
-                            grid: { color: 'rgba(142, 142, 147, 0.1)' }, // 极淡的高级横向辅助线
+                            grid: { color: 'rgba(142, 142, 147, 0.1)' }, 
                             ticks: { precision: 0, color: '#8E8E93', padding: 10 }
                         }
                     } 
                 }
             });
 
-            // 2. 高级质感纯色渐变词云绘制
+            // 2. 高级质感纯色渐变词云
             const maxFreq = sortedWords.length > 0 ? sortedWords[0][1] : 1;
             wordCloudCanvas.width = wordWrapper.clientWidth;
             wordCloudCanvas.height = wordWrapper.clientHeight;
@@ -187,20 +200,18 @@ class DesktopStatsView extends ItemView {
 
             WordCloud(wordCloudCanvas, {
                 list: sortedWords,
-                gridSize: 10, // 增加间距留白，提升呼吸感
+                gridSize: 10, 
                 weightFactor: function (size) { 
                     const normalized = size / maxFreq;
                     return (normalized * (maxSize - minSize)) + minSize; 
                 }, 
-                // 饱满厚重的无衬线字体族
                 fontFamily: 'Impact, "Arial Black", "Helvetica Neue", "PingFang SC", sans-serif',
                 fontWeight: '900', 
-                // 动态透明度纯蓝算法
                 color: function(word: string, weight: number, fontSize: number) {
                     const opacity = 0.30 + 0.70 * ((fontSize - minSize) / (maxSize - minSize));
                     return `rgba(0, 122, 255, ${opacity})`;
                 },
-                rotateRatio: 0, // 坚持水平排版
+                rotateRatio: 0, 
                 shrinkToFit: true, 
                 drawOutOfBound: false, 
                 backgroundColor: 'transparent'
