@@ -1,49 +1,64 @@
+/* 容器全屏铺满 */
 .stats-dashboard-container {
-    padding: 10px 15px;
+    padding: 20px 30px;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
+/* 顶部操作栏 */
 .stats-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    border-bottom: 1px solid var(--background-modifier-border);
-    padding-bottom: 10px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid var(--background-modifier-border);
+    padding-bottom: 15px;
 }
 
 .stats-title {
     margin: 0;
-    font-size: 1.2em;
-    color: var(--text-normal);
-}
-
-.stats-subtitle {
-    margin: 5px 0 10px 0;
-    font-size: 1em;
-    color: var(--text-muted);
+    font-size: 1.5em;
+    font-weight: 600;
 }
 
 .stats-refresh-btn {
-    padding: 4px 12px;
+    padding: 6px 16px;
     cursor: pointer;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-radius: 4px;
+}
+
+/* 横向分栏核心代码：左右并排 */
+.stats-content-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 30px;
+    flex: 1; /* 撑满剩余高度 */
 }
 
 .canvas-container {
-    width: 100%;
-    position: relative;
-    min-height: 220px; 
+    flex: 1; /* 左右各占 50% 宽度 */
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
 }
 
-#trend-chart {
-    width: 100% !important;
-    height: 200px !important;
+.stats-subtitle {
+    margin: 0 0 15px 0;
+    font-size: 1.2em;
+    color: var(--text-muted);
+    text-align: center;
 }
 
-#word-cloud {
+/* 图表与词云背景框优化 */
+#trend-chart, #word-cloud {
+    flex: 1;
     width: 100% !important;
-    height: 320px !important;
-    border-radius: 8px;
+    height: 100% !important;
     background-color: var(--background-secondary);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
