@@ -64,7 +64,7 @@ async function analyzeVaultData(app: App) {
     return {
         chartLabels: sortedDates,
         chartValues: sortedDates.map(date => trendData[date]),
-        sortedWords: Array.from(wordCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 150) // 桌面端可展示更多词汇
+        sortedWords: Array.from(wordCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 100) // 取前100个词
     };
 }
 
@@ -85,43 +85,44 @@ class DesktopStatsView extends ItemView {
         container.empty();
         container.addClass('stats-dashboard-container');
 
-        // 顶部栏
         const headerDiv = container.createDiv({ cls: 'stats-header-row' });
-        headerDiv.createEl("h3", { text: "笔记数据全景透视", cls: 'stats-title' });
-        const refreshBtn = headerDiv.createEl("button", { text: "刷新数据", cls: 'stats-refresh-btn' });
+        headerDiv.createEl("h2", { text: "知识全景洞察", cls: 'stats-title' });
+        const refreshBtn = headerDiv.createEl("button", { text: "重新抓取数据", cls: 'stats-refresh-btn' });
         
-        // 横向分栏包裹器
         const contentWrapper = container.createDiv({ cls: 'stats-content-wrapper' });
 
-        // 左侧：趋势图
-        const chartDiv = contentWrapper.createDiv({ cls: 'canvas-container' });
-        chartDiv.createEl("h4", { text: "产出趋势波折线", cls: 'stats-subtitle' });
-        const chartCanvas = chartDiv.createEl("canvas", { attr: { id: "trend-chart" } });
+        // 左侧面板
+        const chartDiv = contentWrapper.createDiv({ cls: 'panel-container' });
+        chartDiv.createEl("h3", { text: "产出趋势 (按日)", cls: 'stats-subtitle' });
+        const chartWrapper = chartDiv.createDiv({ cls: 'canvas-wrapper' });
+        const chartCanvas = chartWrapper.createEl("canvas", { attr: { id: "trend-chart" } });
         
-        // 右侧：词云
-        const wordDiv = contentWrapper.createDiv({ cls: 'canvas-container' });
-        wordDiv.createEl("h4", { text: "全局核心热词", cls: 'stats-subtitle' });
-        const wordCloudCanvas = wordDiv.createEl("canvas", { attr: { id: "word-cloud" } });
+        // 右侧面板
+        const wordDiv = contentWrapper.createDiv({ cls: 'panel-container' });
+        wordDiv.createEl("h3", { text: "核心热词分布", cls: 'stats-subtitle' });
+        const wordWrapper = wordDiv.createDiv({ cls: 'canvas-wrapper' });
+        const wordCloudCanvas = wordWrapper.createEl("canvas", { attr: { id: "word-cloud" } });
 
         const renderData = async () => {
-            refreshBtn.innerText = "数据抓取中...";
+            refreshBtn.innerText = "数据计算中...";
             refreshBtn.disabled = true;
             
             const { chartLabels, chartValues, sortedWords } = await analyzeVaultData(this.app);
 
+            // 1. 渲染趋势图
             if (this.chartInstance) this.chartInstance.destroy();
             this.chartInstance = new Chart(chartCanvas, {
                 type: 'line',
                 data: {
                     labels: chartLabels,
                     datasets: [{
-                        label: '笔记产量',
+                        label: '笔记新增量',
                         data: chartValues,
-                        borderColor: '#3b82f6', 
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderColor: '#4f46e5', 
+                        backgroundColor: 'rgba(79, 70, 229, 0.15)',
                         borderWidth: 2,
                         pointRadius: 2,
-                        tension: 0.4,
+                        tension: 0.3,
                         fill: true
                     }]
                 },
@@ -130,28 +131,43 @@ class DesktopStatsView extends ItemView {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { 
-                        x: { display: true }, // 桌面端空间大，开启 X 轴日期显示
+                        x: { display: true },
                         y: { beginAtZero: true, ticks: { precision: 0 } }
                     } 
                 }
             });
 
+            // 2. 渲染词云（防爆改版）
+            // 计算最高频词的次数，用于按比例缩放
+            const maxFreq = sortedWords.length > 0 ? sortedWords[0][1] : 1;
+            
+            // 确保 Canvas 元素的内部渲染尺寸和外部容器一致
+            wordCloudCanvas.width = wordWrapper.clientWidth;
+            wordCloudCanvas.height = wordWrapper.clientHeight;
+
             WordCloud(wordCloudCanvas, {
                 list: sortedWords,
-                gridSize: Math.round(16 * wordCloudCanvas.offsetWidth / 1024),
-                weightFactor: function (size) { return Math.pow(size, 0.85) * 3; }, 
+                gridSize: 8, // 缩小网格让排版更紧密
+                weightFactor: function (size) { 
+                    // 动态比例尺：无论最高频次是 5 还是 5000，字号都被限制在 12px ~ 65px 之间
+                    const normalized = size / maxFreq;
+                    return (normalized * 50) + 12; 
+                }, 
                 fontFamily: 'Inter, "PingFang SC", sans-serif',
                 color: 'random-dark',
                 rotateRatio: 0,
+                shrinkToFit: true, // 核心属性：如果字太大放不下，强制缩小
+                drawOutOfBound: false, // 核心属性：绝对不允许画出框外
                 backgroundColor: 'transparent'
             });
 
-            refreshBtn.innerText = "刷新数据";
+            refreshBtn.innerText = "重新抓取数据";
             refreshBtn.disabled = false;
         };
 
         refreshBtn.addEventListener('click', renderData);
-        await renderData();
+        // 稍微延迟渲染，等待 CSS 布局完成获取真实宽高
+        setTimeout(renderData, 100); 
     }
 }
 
@@ -167,7 +183,7 @@ export default class DesktopStatsPlugin extends Plugin {
         const { workspace } = this.app;
         let leaf = workspace.getLeavesOfType(VIEW_TYPE_STATS)[0];
         if (!leaf) {
-            leaf = workspace.getLeaf('tab'); // 桌面端建议在新标签页打开，而非侧边栏
+            leaf = workspace.getLeaf('tab');
             await leaf.setViewState({ type: VIEW_TYPE_STATS, active: true });
         }
         workspace.revealLeaf(leaf);
