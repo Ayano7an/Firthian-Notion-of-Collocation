@@ -1,10 +1,10 @@
 {
-  "id": "obsidian-desktop-insights",
+  "id": "Desktop-WordCloud-Trends",
   "name": "Desktop WordCloud & Trends",
   "version": "1.0.0",
   "minAppVersion": "1.0.0",
   "description": "专为 Mac 和桌面端优化的笔记趋势与全局热词云引擎。",
   "author": "Your Name",
-  "authorUrl": "https://github.com/liyaomingme/obsidian-desktop-insights",
+  "authorUrl": "https://github.com/liyaomingme/Desktop-WordCloud-Trends",
   "isDesktopOnly": true
 }
