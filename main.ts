@@ -35,25 +35,37 @@ class WordSphereEngine {
     height: number = 0;
     tags: SphereNode[] = [];
     
-    // 物理交互状态
     isDragging = false;
     isHoveringNode = false; 
     previousMouseX = 0; 
     previousMouseY = 0;
     
-    // 速度与摩擦力系统
     velocityX = 0.002; 
     velocityY = 0.002;
-    targetMinSpeed = 0.0015; // 最终的匀速漂移速度
-    friction = 0.94; // 拖拽松开后的阻尼系数
+    targetMinSpeed = 0.0015; 
+    friction = 0.94; 
 
     animationFrameId: number = 0;
     isActive = true;
-    resizeObserver: ResizeObserver;
+    resizeObserver: any; // 修复 TS 严格模式：防止旧环境不认识 ResizeObserver
 
-    // 绑定事件引用，以便安全卸载
-    private onMouseMove: (e: MouseEvent) => void;
-    private onMouseUp: () => void;
+    // 修复 TS 严格模式：直接在声明时初始化箭头函数，防止 constructor 报错
+    private onMouseMove = (e: MouseEvent) => {
+        if (!this.isDragging) return;
+        const deltaX = e.clientX - this.previousMouseX;
+        const deltaY = e.clientY - this.previousMouseY;
+        this.previousMouseX = e.clientX;
+        this.previousMouseY = e.clientY;
+        this.velocityY = deltaX * 0.006; 
+        this.velocityX = -deltaY * 0.006; 
+    };
+
+    private onMouseUp = () => {
+        if (this.isDragging) {
+            this.isDragging = false;
+            this.container.style.cursor = 'default';
+        }
+    };
 
     constructor(container: HTMLElement, radius: number) {
         this.container = container;
@@ -124,34 +136,12 @@ class WordSphereEngine {
     }
 
     private setupMouseListeners() {
-        // 拖拽抓取
         this.container.addEventListener('mousedown', (e) => {
             this.isDragging = true;
             this.previousMouseX = e.clientX;
             this.previousMouseY = e.clientY;
             this.container.style.cursor = 'grabbing';
         });
-
-        // 全局监听鼠标移动，防止拖拽过快脱离容器
-        this.onMouseMove = (e: MouseEvent) => {
-            if (!this.isDragging) return;
-            const deltaX = e.clientX - this.previousMouseX;
-            const deltaY = e.clientY - this.previousMouseY;
-            this.previousMouseX = e.clientX;
-            this.previousMouseY = e.clientY;
-            
-            // 将鼠标像素移动转化为三维旋转角速度 (真实拨动反馈)
-            this.velocityY = deltaX * 0.006; 
-            this.velocityX = -deltaY * 0.006; 
-        };
-
-        // 全局监听松开
-        this.onMouseUp = () => {
-            if (this.isDragging) {
-                this.isDragging = false;
-                this.container.style.cursor = 'default';
-            }
-        };
 
         document.addEventListener('mousemove', this.onMouseMove);
         document.addEventListener('mouseup', this.onMouseUp);
@@ -168,25 +158,20 @@ class WordSphereEngine {
         const animate = () => {
             if (!this.isActive) return;
 
-            // 物理反馈核心系统
             if (!this.isDragging) {
                 if (this.isHoveringNode) {
-                    // 悬浮在节点上时：平滑刹车，方便用户点击
                     this.velocityX *= 0.8;
                     this.velocityY *= 0.8;
                 } else {
-                    // 没有拖拽、没有悬停时：平滑降速至底线匀速自转
                     const speed = Math.sqrt(this.velocityX ** 2 + this.velocityY ** 2);
                     if (speed > this.targetMinSpeed) {
-                        this.velocityX *= this.friction; // 惯性衰减
+                        this.velocityX *= this.friction; 
                         this.velocityY *= this.friction;
                     } else if (speed > 0 && speed < this.targetMinSpeed) {
-                        // 防止彻底停下，保持匀速漂移
                         const ratio = this.targetMinSpeed / speed;
                         this.velocityX *= ratio;
                         this.velocityY *= ratio;
                     } else if (speed === 0) {
-                        // 初始保底动力
                         this.velocityX = this.targetMinSpeed;
                         this.velocityY = this.targetMinSpeed;
                     }
@@ -201,7 +186,6 @@ class WordSphereEngine {
             const colorNormal = getComputedColor('--text-normal', '#333333');
             const neutralLineColor = '128, 128, 128'; 
 
-            // 应用计算出的当前速度，进行 3D 旋转变换
             const renderList = this.tags.map(tag => {
                 const x1 = tag.x * Math.cos(this.velocityY) - tag.z * Math.sin(this.velocityY);
                 const z1 = tag.z * Math.cos(this.velocityY) + tag.x * Math.sin(this.velocityY);
@@ -212,7 +196,6 @@ class WordSphereEngine {
                 return { ...tag, zRatio: tag.z / this.radius };
             }).sort((a, b) => a.z - b.z);
 
-            // 绘制连线与中心奇点 (遵循景深)
             renderList.forEach(item => {
                 if (item.z >= 0) return;
                 this.drawConnectionLine(cx, cy, item, neutralLineColor, colorNormal, colorAccent);
@@ -228,7 +211,6 @@ class WordSphereEngine {
                 this.drawConnectionLine(cx, cy, item, neutralLineColor, colorNormal, colorAccent);
             });
 
-            // 更新 DOM 节点
             renderList.forEach(item => {
                 const tag = item;
                 const baseTransform = `translate(-50%, -50%) translate3d(${tag.x}px, ${tag.y}px, 0px)`;
@@ -237,14 +219,15 @@ class WordSphereEngine {
                     if (tag.renderState === 'focused') {
                         tag.el.style.opacity = '1';
                         tag.el.style.filter = 'blur(0px)';
-                        tag.el.style.transform = `${baseTransform} scale(1.2)`;
+                        // 彻底修复反引号语法错误
+                        tag.el.style.transform = `${baseTransform} scale(1.15)`;
                         tag.el.style.zIndex = '99999';
                         tag.el.style.color = 'var(--text-normal)';
                         tag.el.style.textShadow = '0 8px 24px rgba(0,0,0,0.1)';
                     } else if (tag.renderState === 'co-occurring') {
                         tag.el.style.opacity = '0.5';
                         tag.el.style.filter = 'blur(0px)';
-                        tag.el.style.transform = `${baseTransform} scale(1)';
+                        tag.el.style.transform = `${baseTransform} scale(1)`;
                         tag.el.style.zIndex = '50000';
                         tag.el.style.color = 'var(--text-muted)';
                         tag.el.style.textShadow = 'none';
@@ -441,7 +424,6 @@ class DesktopStatsHeatmapView extends ItemView {
         const container = this.containerEl.children[1]; container.empty();
         container.addClass('stats-heatmap-dashboard-container');
 
-        // 适配左侧边栏：减小内边距，使其不拥挤
         container.setAttr('style', `
             padding: 24px 16px; display: flex; flex-direction: column; height: 100%; overflow: hidden; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
@@ -461,7 +443,6 @@ class DesktopStatsHeatmapView extends ItemView {
         const iconSpan = titleDiv.createEl('span', { attr: { style: 'width: 20px; height: 20px; color: var(--text-normal); margin-right: 10px; display: flex; align-items: center;' } });
         setIcon(iconSpan, 'network'); 
         
-        // 适配左侧边栏：略微减小标题字号
         const titleText = titleDiv.createEl("h1", { 
             text: "拓扑网络", 
             attr: { 
@@ -485,7 +466,6 @@ class DesktopStatsHeatmapView extends ItemView {
             const heatmapWords = await analyzeVaultData(this.app);
             const maxWordCount = heatmapWords.length > 0 ? heatmapWords[0].value : 1;
 
-            // 适配左侧边栏：动态计算半径，确保不撑出边界，保底 90px
             const containerMinSide = Math.min(heatmapDiv.clientWidth || 250, heatmapDiv.clientHeight || 350);
             const baseRadius = Math.max((containerMinSide / 2) * 0.75, 90);
 
@@ -495,7 +475,6 @@ class DesktopStatsHeatmapView extends ItemView {
                 const wordEl = document.createElement('div');
                 wordEl.innerText = word;
                 
-                // 适配左侧面板：最大字号收缩，防止拥挤
                 const fontSize = Math.max(12, Math.min(36, 12 + (value/maxWordCount)*24));
                 const fontWeight = value > maxWordCount * 0.6 ? '800' : (value > maxWordCount * 0.3 ? '600' : '500');
                 const filePaths = new Set(files.map(f => f.path));
@@ -565,7 +544,6 @@ export default class DesktopStatsPlugin extends Plugin {
         let existingLeaves = workspace.getLeavesOfType(VIEW_TYPE_STATS_HEATMAP);
         for (let i = 0; i < existingLeaves.length; i++) existingLeaves[i].detach(); 
         
-        // 核心修改：强制在左侧边栏 (LeftLeaf) 唤起界面
         const leaf = workspace.getLeftLeaf(false);
         if (leaf) { await leaf.setViewState({ type: VIEW_TYPE_STATS_HEATMAP, active: true }); workspace.revealLeaf(leaf); }
     }
