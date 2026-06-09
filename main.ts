@@ -25,6 +25,7 @@ interface SphereNode {
     filePaths: Set<string>;
 }
 
+// --- 物理级 3D 星系引擎 (真实阻尼 + 拖拽交互) ---
 class WordSphereEngine {
     container: HTMLElement;
     canvas: HTMLCanvasElement;
@@ -33,14 +34,26 @@ class WordSphereEngine {
     width: number = 0;
     height: number = 0;
     tags: SphereNode[] = [];
-    isStopped = false;
+    
+    // 物理交互状态
+    isDragging = false;
     isHoveringNode = false; 
-    mouseX = 0; mouseY = 0;
-    lastMouseX = 0; lastMouseY = 0;
-    damping = 0.95; 
+    previousMouseX = 0; 
+    previousMouseY = 0;
+    
+    // 速度与摩擦力系统
+    velocityX = 0.002; 
+    velocityY = 0.002;
+    targetMinSpeed = 0.0015; // 最终的匀速漂移速度
+    friction = 0.94; // 拖拽松开后的阻尼系数
+
     animationFrameId: number = 0;
     isActive = true;
     resizeObserver: ResizeObserver;
+
+    // 绑定事件引用，以便安全卸载
+    private onMouseMove: (e: MouseEvent) => void;
+    private onMouseUp: () => void;
 
     constructor(container: HTMLElement, radius: number) {
         this.container = container;
@@ -81,7 +94,6 @@ class WordSphereEngine {
 
     addTag(tagEl: HTMLElement, baseFontSize: number, baseWeight: string, filePaths: Set<string>) {
         tagEl.style.position = 'absolute';
-        // 核心修复：绝对定位锚点在容器中心，彻底解决文字缩在右下角不跟线对齐的 Bug
         tagEl.style.left = '50%';
         tagEl.style.top = '50%';
         tagEl.style.cursor = 'pointer';
@@ -112,27 +124,41 @@ class WordSphereEngine {
     }
 
     private setupMouseListeners() {
-        this.container.addEventListener('mousemove', (e) => {
-            const rect = this.container.getBoundingClientRect();
-            this.mouseX = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-            this.mouseY = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+        // 拖拽抓取
+        this.container.addEventListener('mousedown', (e) => {
+            this.isDragging = true;
+            this.previousMouseX = e.clientX;
+            this.previousMouseY = e.clientY;
+            this.container.style.cursor = 'grabbing';
         });
-        this.container.addEventListener('mouseenter', () => this.isStopped = false);
-        this.container.addEventListener('mouseleave', () => this.isStopped = true);
+
+        // 全局监听鼠标移动，防止拖拽过快脱离容器
+        this.onMouseMove = (e: MouseEvent) => {
+            if (!this.isDragging) return;
+            const deltaX = e.clientX - this.previousMouseX;
+            const deltaY = e.clientY - this.previousMouseY;
+            this.previousMouseX = e.clientX;
+            this.previousMouseY = e.clientY;
+            
+            // 将鼠标像素移动转化为三维旋转角速度 (真实拨动反馈)
+            this.velocityY = deltaX * 0.006; 
+            this.velocityX = -deltaY * 0.006; 
+        };
+
+        // 全局监听松开
+        this.onMouseUp = () => {
+            if (this.isDragging) {
+                this.isDragging = false;
+                this.container.style.cursor = 'default';
+            }
+        };
+
+        document.addEventListener('mousemove', this.onMouseMove);
+        document.addEventListener('mouseup', this.onMouseUp);
     }
 
     startAnimation() {
         if (this.tags.length === 0) return;
-        
-        let targetRotationX = 0; let targetRotationY = 0;
-        let currentRotationX = 0; let currentRotationY = 0;
-
-        this.container.addEventListener('mousemove', () => {
-            targetRotationY += (this.mouseX - this.lastMouseX) * 0.08;
-            targetRotationX += (this.mouseY - this.lastMouseY) * 0.08;
-            this.lastMouseX = this.mouseX;
-            this.lastMouseY = this.mouseY;
-        });
 
         const getComputedColor = (cssVar: string, fallback: string) => {
             const val = getComputedStyle(document.body).getPropertyValue(cssVar).trim();
@@ -142,16 +168,29 @@ class WordSphereEngine {
         const animate = () => {
             if (!this.isActive) return;
 
-            let baseSpeedX = 0.001; 
-            let baseSpeedY = 0.0015;
-
-            if (!this.isStopped && !this.isHoveringNode) {
-                currentRotationX += (targetRotationX - currentRotationX) * 0.05;
-                currentRotationY += (targetRotationY - currentRotationY) * 0.05;
-                targetRotationX *= this.damping;
-                targetRotationY *= this.damping;
-                baseSpeedX += currentRotationX;
-                baseSpeedY += currentRotationY;
+            // 物理反馈核心系统
+            if (!this.isDragging) {
+                if (this.isHoveringNode) {
+                    // 悬浮在节点上时：平滑刹车，方便用户点击
+                    this.velocityX *= 0.8;
+                    this.velocityY *= 0.8;
+                } else {
+                    // 没有拖拽、没有悬停时：平滑降速至底线匀速自转
+                    const speed = Math.sqrt(this.velocityX ** 2 + this.velocityY ** 2);
+                    if (speed > this.targetMinSpeed) {
+                        this.velocityX *= this.friction; // 惯性衰减
+                        this.velocityY *= this.friction;
+                    } else if (speed > 0 && speed < this.targetMinSpeed) {
+                        // 防止彻底停下，保持匀速漂移
+                        const ratio = this.targetMinSpeed / speed;
+                        this.velocityX *= ratio;
+                        this.velocityY *= ratio;
+                    } else if (speed === 0) {
+                        // 初始保底动力
+                        this.velocityX = this.targetMinSpeed;
+                        this.velocityY = this.targetMinSpeed;
+                    }
+                }
             }
 
             this.ctx.clearRect(0, 0, this.width, this.height);
@@ -162,17 +201,18 @@ class WordSphereEngine {
             const colorNormal = getComputedColor('--text-normal', '#333333');
             const neutralLineColor = '128, 128, 128'; 
 
+            // 应用计算出的当前速度，进行 3D 旋转变换
             const renderList = this.tags.map(tag => {
-                if (!this.isHoveringNode) {
-                    const x1 = tag.x * Math.cos(baseSpeedY) - tag.z * Math.sin(baseSpeedY);
-                    const z1 = tag.z * Math.cos(baseSpeedY) + tag.x * Math.sin(baseSpeedY);
-                    const y1 = tag.y * Math.cos(baseSpeedX) - z1 * Math.sin(baseSpeedX);
-                    const z2 = z1 * Math.cos(baseSpeedX) + tag.y * Math.sin(baseSpeedX);
-                    tag.x = x1; tag.y = y1; tag.z = z2;
-                }
+                const x1 = tag.x * Math.cos(this.velocityY) - tag.z * Math.sin(this.velocityY);
+                const z1 = tag.z * Math.cos(this.velocityY) + tag.x * Math.sin(this.velocityY);
+                const y1 = tag.y * Math.cos(this.velocityX) - z1 * Math.sin(this.velocityX);
+                const z2 = z1 * Math.cos(this.velocityX) + tag.y * Math.sin(this.velocityX);
+                
+                tag.x = x1; tag.y = y1; tag.z = z2;
                 return { ...tag, zRatio: tag.z / this.radius };
             }).sort((a, b) => a.z - b.z);
 
+            // 绘制连线与中心奇点 (遵循景深)
             renderList.forEach(item => {
                 if (item.z >= 0) return;
                 this.drawConnectionLine(cx, cy, item, neutralLineColor, colorNormal, colorAccent);
@@ -188,23 +228,23 @@ class WordSphereEngine {
                 this.drawConnectionLine(cx, cy, item, neutralLineColor, colorNormal, colorAccent);
             });
 
+            // 更新 DOM 节点
             renderList.forEach(item => {
                 const tag = item;
-                // 核心修复：translate(-50%, -50%) 确保文字绝对居中于连线的端点
                 const baseTransform = `translate(-50%, -50%) translate3d(${tag.x}px, ${tag.y}px, 0px)`;
                 
                 if (this.isHoveringNode) {
                     if (tag.renderState === 'focused') {
                         tag.el.style.opacity = '1';
                         tag.el.style.filter = 'blur(0px)';
-                        tag.el.style.transform = `${baseTransform} scale(1.15)`;
+                        tag.el.style.transform = `${baseTransform} scale(1.2)`;
                         tag.el.style.zIndex = '99999';
                         tag.el.style.color = 'var(--text-normal)';
                         tag.el.style.textShadow = '0 8px 24px rgba(0,0,0,0.1)';
                     } else if (tag.renderState === 'co-occurring') {
                         tag.el.style.opacity = '0.5';
                         tag.el.style.filter = 'blur(0px)';
-                        tag.el.style.transform = `${baseTransform} scale(1)`;
+                        tag.el.style.transform = `${baseTransform} scale(1)';
                         tag.el.style.zIndex = '50000';
                         tag.el.style.color = 'var(--text-muted)';
                         tag.el.style.textShadow = 'none';
@@ -287,6 +327,8 @@ class WordSphereEngine {
         this.isActive = false;
         if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
         if (this.resizeObserver) this.resizeObserver.disconnect();
+        document.removeEventListener('mousemove', this.onMouseMove);
+        document.removeEventListener('mouseup', this.onMouseUp);
     }
 }
 
@@ -399,16 +441,16 @@ class DesktopStatsHeatmapView extends ItemView {
         const container = this.containerEl.children[1]; container.empty();
         container.addClass('stats-heatmap-dashboard-container');
 
+        // 适配左侧边栏：减小内边距，使其不拥挤
         container.setAttr('style', `
-            padding: 40px; display: flex; flex-direction: column; height: 100%; overflow: hidden; 
+            padding: 24px 16px; display: flex; flex-direction: column; height: 100%; overflow: hidden; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
             -webkit-font-smoothing: antialiased; background-color: var(--background-secondary);
         `);
 
-        // 核心修改：将标题变成刷新触发器，并去掉重构按钮
         const headerDiv = container.createDiv({ 
             attr: { 
-                style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-shrink: 0; cursor: pointer; opacity: 0.85; transition: opacity 0.2s ease;',
+                style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0; cursor: pointer; opacity: 0.85; transition: opacity 0.2s ease;',
                 title: '点击重新构建突触'
             } 
         });
@@ -416,24 +458,25 @@ class DesktopStatsHeatmapView extends ItemView {
         const titleDiv = headerDiv.createDiv({
             attr: { style: 'display: flex; align-items: center; white-space: nowrap;' }
         });
-        const iconSpan = titleDiv.createEl('span', { attr: { style: 'width: 24px; height: 24px; color: var(--text-normal); margin-right: 12px; display: flex; align-items: center;' } });
+        const iconSpan = titleDiv.createEl('span', { attr: { style: 'width: 20px; height: 20px; color: var(--text-normal); margin-right: 10px; display: flex; align-items: center;' } });
         setIcon(iconSpan, 'network'); 
         
+        // 适配左侧边栏：略微减小标题字号
         const titleText = titleDiv.createEl("h1", { 
             text: "拓扑网络", 
             attr: { 
-                style: 'margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-normal); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;' 
+                style: 'margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-normal); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;' 
             } 
         });
         
         const contentWrapper = container.createDiv({ attr: { style: 'display: flex; flex-direction: column; flex: 1; min-height: 0;' } });
         const heatmapDiv = contentWrapper.createDiv({ 
-            attr: { style: 'flex: 1; display: flex; justify-content: center; align-items: center; background-color: var(--background-primary); border-radius: 24px; box-shadow: 0 16px 48px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.02); overflow: hidden; position: relative;' } 
+            attr: { style: 'flex: 1; display: flex; justify-content: center; align-items: center; background-color: var(--background-primary); border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.03); overflow: hidden; position: relative;' } 
         });
 
         const renderData = async () => {
             headerDiv.style.opacity = '0.3';
-            titleText.innerText = "突触建立中...";
+            titleText.innerText = "构建中...";
             headerDiv.style.pointerEvents = 'none';
 
             if (this.sphereEngine) this.sphereEngine.destroy();
@@ -442,8 +485,9 @@ class DesktopStatsHeatmapView extends ItemView {
             const heatmapWords = await analyzeVaultData(this.app);
             const maxWordCount = heatmapWords.length > 0 ? heatmapWords[0].value : 1;
 
-            const containerMinSide = Math.min(heatmapDiv.clientWidth || 500, heatmapDiv.clientHeight || 500);
-            const baseRadius = Math.max((containerMinSide / 2) * 0.65, 160);
+            // 适配左侧边栏：动态计算半径，确保不撑出边界，保底 90px
+            const containerMinSide = Math.min(heatmapDiv.clientWidth || 250, heatmapDiv.clientHeight || 350);
+            const baseRadius = Math.max((containerMinSide / 2) * 0.75, 90);
 
             this.sphereEngine = new WordSphereEngine(heatmapDiv, baseRadius);
 
@@ -451,7 +495,8 @@ class DesktopStatsHeatmapView extends ItemView {
                 const wordEl = document.createElement('div');
                 wordEl.innerText = word;
                 
-                const fontSize = Math.max(13, Math.min(48, 13 + (value/maxWordCount)*35));
+                // 适配左侧面板：最大字号收缩，防止拥挤
+                const fontSize = Math.max(12, Math.min(36, 12 + (value/maxWordCount)*24));
                 const fontWeight = value > maxWordCount * 0.6 ? '800' : (value > maxWordCount * 0.3 ? '600' : '500');
                 const filePaths = new Set(files.map(f => f.path));
 
@@ -514,11 +559,14 @@ export default class DesktopStatsPlugin extends Plugin {
         this.addCommand({ id: 'open-typographic-insights', name: '打开拓扑网络', callback: () => this.activateView() });
     }
     async onunload() { this.app.workspace.detachLeavesOfType(VIEW_TYPE_STATS_HEATMAP); }
+    
     async activateView() {
         const { workspace } = this.app;
         let existingLeaves = workspace.getLeavesOfType(VIEW_TYPE_STATS_HEATMAP);
         for (let i = 0; i < existingLeaves.length; i++) existingLeaves[i].detach(); 
-        const leaf = workspace.getRightLeaf(false);
+        
+        // 核心修改：强制在左侧边栏 (LeftLeaf) 唤起界面
+        const leaf = workspace.getLeftLeaf(false);
         if (leaf) { await leaf.setViewState({ type: VIEW_TYPE_STATS_HEATMAP, active: true }); workspace.revealLeaf(leaf); }
     }
 }
