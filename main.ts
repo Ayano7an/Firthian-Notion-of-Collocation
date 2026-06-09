@@ -121,60 +121,50 @@ class DesktopStatsView extends ItemView {
             
             const ctx = (chartCanvas as HTMLCanvasElement).getContext('2d');
             
-            // 1. 定义 Apple Keynote 级别的物理光影插件
-            const neonGlowPlugin = {
-                id: 'neonGlow',
-                beforeDatasetDraw: (chart: any) => {
-                    const chartCtx = chart.ctx;
-                    chartCtx.save();
-                    // 设置深邃的坠落阴影与外发光
-                    chartCtx.shadowColor = 'rgba(0, 122, 255, 0.45)'; 
-                    chartCtx.shadowBlur = 18;
-                    chartCtx.shadowOffsetX = 0;
-                    chartCtx.shadowOffsetY = 8;
-                },
-                afterDatasetDraw: (chart: any) => {
-                    chart.ctx.restore();
-                }
-            };
+            // 1. 定义 Keynote 级别的高级渐变配色
+            let lineGradient: string | CanvasGradient = '#5E5CE6';
+            let fillGradient: string | CanvasGradient = 'rgba(94, 92, 230, 0.1)';
 
-            // 2. 为线条本身创建一个水平质感渐变（而非背景填充）
-            let lineGradient: string | CanvasGradient = '#007AFF';
             if (ctx) {
+                // 水平流光线条：青蓝 -> 靛紫 -> 玫瑰
                 lineGradient = ctx.createLinearGradient(0, 0, chartWrapper.clientWidth, 0);
-                lineGradient.addColorStop(0, '#32ADE6');    // 亮青蓝起手
-                lineGradient.addColorStop(0.5, '#007AFF');  // 纯正苹果蓝过渡
-                lineGradient.addColorStop(1, '#0040DD');    // 深邃靛蓝收尾
+                lineGradient.addColorStop(0, '#32ADE6');   
+                lineGradient.addColorStop(0.5, '#5E5CE6'); 
+                lineGradient.addColorStop(1, '#FF2D55');   
+
+                // 垂直冰霜填充：从深邃的靛紫淡化到完全透明
+                fillGradient = ctx.createLinearGradient(0, 0, 0, chartWrapper.clientHeight);
+                fillGradient.addColorStop(0, 'rgba(94, 92, 230, 0.25)'); // 降低不透明度，提升通透感
+                fillGradient.addColorStop(1, 'rgba(94, 92, 230, 0.0)');
             }
 
             this.chartInstance = new Chart(chartCanvas as any, {
                 type: 'line',
-                plugins: [neonGlowPlugin], // 注入光影引擎
                 data: {
                     labels: chartLabels,
                     datasets: [{
                         label: '新增笔记数',
                         data: chartValues,
                         borderColor: lineGradient, 
-                        borderWidth: 4.5, // 极度加粗，增强物理实体感
-                        backgroundColor: 'transparent', // 彻底抛弃廉价的面积填充
+                        backgroundColor: fillGradient, 
+                        borderWidth: 2.5, // 极度克制的细线，告别笨重
                         pointRadius: 0, 
-                        pointHoverRadius: 7,
+                        pointHoverRadius: 6,
                         pointBackgroundColor: '#FFFFFF',
-                        pointBorderColor: '#007AFF',
-                        pointBorderWidth: 3,
-                        tension: 0.4, // 恢复优雅的苹果曲线张力
-                        fill: false // 关键：关闭填充
+                        pointBorderColor: '#5E5CE6',
+                        pointBorderWidth: 2,
+                        cubicInterpolationMode: 'monotone', // 防止突刺跌破底线
+                        fill: true // 恢复优雅的底部填充
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        padding: { top: 30, bottom: 10, left: 10, right: 20 } // 增加四周呼吸空间，防止割裂
+                        padding: { top: 20, right: 10 } 
                     },
                     animation: {
-                        duration: 1500, // 稍微拉长动画时间，让发光线条流出更丝滑
+                        duration: 1200, 
                         easing: 'easeOutQuart',
                         active: { duration: 400 }
                     },
@@ -182,49 +172,49 @@ class DesktopStatsView extends ItemView {
                     plugins: { 
                         legend: { display: false },
                         tooltip: { 
-                            backgroundColor: 'rgba(28, 28, 30, 0.85)',
-                            backdropFilter: 'blur(16px)',
-                            padding: 14,
-                            cornerRadius: 12, // 更圆润的 iOS 气泡
+                            backgroundColor: 'rgba(28, 28, 30, 0.8)',
+                            backdropFilter: 'blur(12px)',
+                            padding: 12,
+                            cornerRadius: 8, 
                             displayColors: false,
-                            titleFont: { size: 14, weight: '600' as const, family: '-apple-system, sans-serif' },
-                            bodyFont: { size: 13, family: '-apple-system, sans-serif' },
+                            titleFont: { size: 13, weight: '600' as const, family: '-apple-system, BlinkMacSystemFont, sans-serif' },
+                            bodyFont: { size: 12, family: '-apple-system, BlinkMacSystemFont, sans-serif' },
                             borderWidth: 1,
-                            borderColor: 'rgba(255, 255, 255, 0.1)'
+                            borderColor: 'rgba(255, 255, 255, 0.15)'
                         }
                     },
                     scales: { 
                         x: { 
                             display: true, 
                             border: { display: false }, 
-                            grid: { display: false }, 
+                            grid: { display: false }, // 保持 X 轴极简无网格
                             ticks: { 
-                                color: '#8E8E93', 
+                                color: '#999999', 
                                 maxRotation: 45,
-                                font: { family: '-apple-system, sans-serif', size: 11 },
-                                padding: 8
+                                font: { family: '-apple-system, BlinkMacSystemFont, sans-serif', size: 10 },
+                                padding: 6
                             } 
                         },
                         y: { 
                             beginAtZero: true, 
                             border: { display: false }, 
                             grid: { 
-                                color: 'rgba(142, 142, 147, 0.12)', 
+                                color: 'rgba(142, 142, 147, 0.08)', // 几乎不可见的极淡辅助线
                                 drawTicks: false, 
-                                borderDash: [6, 6] // 采用更宽距的虚线
+                                borderDash: [4, 4] 
                             }, 
                             ticks: { 
                                 precision: 0, 
-                                color: '#8E8E93', 
-                                padding: 15, // 让 Y 轴数字远离图表，提升空间感
-                                font: { family: '-apple-system, sans-serif', size: 11 }
+                                color: '#999999', 
+                                padding: 12, 
+                                font: { family: '-apple-system, BlinkMacSystemFont, sans-serif', size: 11 }
                             }
                         }
                     } 
                 }
             });
 
-            // 2. 高级质感纯色渐变词云
+            // 2. 词云逻辑保持不变
             const maxFreq = sortedWords.length > 0 ? sortedWords[0][1] : 1;
             wordCloudCanvas.width = wordWrapper.clientWidth;
             wordCloudCanvas.height = wordWrapper.clientHeight;
