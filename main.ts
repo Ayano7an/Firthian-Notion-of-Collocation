@@ -1,5 +1,5 @@
 import { App, ItemView, Plugin, WorkspaceLeaf, Modal, Notice } from 'obsidian';
-import * as d3 from 'd3'; 
+import WordCloud from 'wordcloud';
 
 const VIEW_TYPE_STATS_HEATMAP = "desktop-stats-heatmap-view";
 
@@ -69,17 +69,22 @@ async function analyzeVaultData(app: App) {
         }
     }
 
-    const heatmapData = Array.from(dateTrend.entries()).map(([dateStr, count]) => {
-        return { date: new Date(dateStr), count: count };
-    });
-
     return {
         heatmapWords: Array.from(wordCounts.entries())
                             .sort((a, b) => b[1] - a[1])
                             .slice(0, 100)
                             .map(([word, value]) => ({ word, value })),
-        heatmapData: heatmapData
+        dateTrend: dateTrend
     };
+}
+
+// --- 纯原生计算颜色引擎 ---
+function getHeatmapColor(value: number, max: number): string {
+    if (value === 0) return 'rgba(142, 142, 147, 0.08)'; // 空白状态，极淡的灰色
+    const ratio = Math.min(value / max, 1);
+    // 苹果系统蓝色 (0, 122, 255) 动态透明度
+    const opacity = 0.25 + (ratio * 0.75); 
+    return `rgba(0, 122, 255, ${opacity})`;
 }
 
 // --- 热力词 Modal 组件 ---
@@ -101,20 +106,16 @@ class WordHeatmapModal extends Modal {
         });
 
         const wordsContainer = contentEl.createDiv({ 
-            attr: { style: "display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 10px;" } 
+            attr: { style: "display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 10px;" } 
         });
         
         const maxCount = this.words.length > 0 ? this.words[0].value : 1;
-        
-        const colorScale = d3.scaleSequential()
-                             .domain([0, maxCount])
-                             .interpolator(d3.interpolateBlues); 
 
         this.words.forEach(({word, value}) => {
             const wordEl = wordsContainer.createDiv();
             wordEl.setText(word);
             
-            const bgColor = colorScale(value);
+            const bgColor = getHeatmapColor(value, maxCount);
             const textColor = value > maxCount * 0.4 ? '#ffffff' : '#333333';
             
             wordEl.setAttr("style", `
@@ -170,55 +171,69 @@ class DesktopStatsHeatmapView extends ItemView {
         const contentWrapper = container.createDiv({ cls: 'stats-content-wrapper' });
 
         const heatmapDiv = contentWrapper.createDiv({ cls: 'panel-container', attr: { style: 'flex: 1;' } });
-        heatmapDiv.createEl("h3", { text: "笔记产出活跃度", cls: 'stats-subtitle' });
+        heatmapDiv.createEl("h3", { text: "近一年产出活跃度", cls: 'stats-subtitle' });
         
-        // 关键修复：不再使用 ID，直接用 DOM 对象生成 D3 画布，防止 Obsidian 内部冲突
-        const heatmapWrapper = heatmapDiv.createDiv({ attr: { style: 'width: 100%; height: 100%; min-height: 250px; display: flex; justify-content: center; align-items: center;' } });
+        // 原生 DOM 热力图容器
+        const heatmapWrapper = heatmapDiv.createDiv({ 
+            attr: { style: 'display: flex; gap: 4px; overflow-x: auto; padding: 10px; width: 100%; height: 100%; align-items: center; justify-content: flex-end;' } 
+        });
 
         const renderData = async () => {
             refreshBtn.innerText = "数据计算中...";
             refreshBtn.disabled = true;
+            heatmapWrapper.empty();
             
-            const { heatmapWords, heatmapData } = await analyzeVaultData(this.app);
+            const { heatmapWords, dateTrend } = await analyzeVaultData(this.app);
 
-            const width = heatmapWrapper.clientWidth || 800;
-            const height = heatmapWrapper.clientHeight || 250;
-            const cellSize = Math.min(width / 55, height / 9); 
+            // 1. 纯原生绘制 Github 风格热力图
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setFullYear(endDate.getFullYear() - 1); // 往前推 1 年
+            startDate.setDate(startDate.getDate() - startDate.getDay()); // 对齐到周日
 
-            // 安全重绘机制
-            d3.select(heatmapWrapper).select('svg').remove(); 
+            const weeks: {date: string, count: number}[][] = [];
+            let currentWeek: {date: string, count: number}[] = [];
+            let currDate = new Date(startDate);
+            let maxCount = 1;
 
-            const svg = d3.select(heatmapWrapper)
-                          .append('svg')
-                          .attr('width', width)
-                          .attr('height', height)
-                          .append('g')
-                          .attr('transform', `translate(20, 20)`);
+            for (const [_, count] of dateTrend.entries()) {
+                if (count > maxCount) maxCount = count;
+            }
 
-            const maxCount = d3.max(heatmapData, d => d.count) || 1;
-            const colorScale = d3.scaleSequential()
-                                 .domain([0, maxCount])
-                                 .interpolator(d3.interpolateBlues); 
+            while (currDate <= endDate) {
+                const dateStr = currDate.toISOString().split('T')[0];
+                const count = dateTrend.get(dateStr) || 0;
+                currentWeek.push({ date: dateStr, count });
 
-            svg.selectAll('rect')
-               .data(heatmapData)
-               .enter()
-               .append('rect')
-               .attr('x', d => d3.timeWeek.count(d3.timeYear(d.date), d.date) * (cellSize + 4))
-               .attr('y', d => d.date.getDay() * (cellSize + 4))
-               .attr('width', cellSize)
-               .attr('height', cellSize)
-               .attr('fill', d => colorScale(d.count))
-               .attr('rx', 4) 
-               .attr('ry', 4)
-               .style('stroke', 'rgba(0,0,0,0.05)') 
-               .style('stroke-width', '1px')
-               .append('title')
-               .text(d => `${d.date.toISOString().split('T')[0]}: 产出 ${d.count} 篇`);
+                if (currDate.getDay() === 6) { // 周六结束一周
+                    weeks.push(currentWeek);
+                    currentWeek = [];
+                }
+                currDate.setDate(currDate.getDate() + 1);
+            }
+            if (currentWeek.length > 0) weeks.push(currentWeek);
+
+            // 使用 Flex 渲染网格
+            weeks.forEach(week => {
+                const col = heatmapWrapper.createDiv({ attr: { style: 'display: flex; flex-direction: column; gap: 4px;' } });
+                week.forEach(day => {
+                    const bgColor = getHeatmapColor(day.count, maxCount);
+                    const cell = col.createDiv({
+                        attr: {
+                            style: `width: 14px; height: 14px; background-color: ${bgColor}; border-radius: 4px; cursor: pointer; transition: transform 0.1s;`
+                        }
+                    });
+                    cell.setAttr('title', `${day.date}: 产出 ${day.count} 篇`);
+                    
+                    cell.addEventListener('mouseenter', () => cell.style.transform = 'scale(1.2)');
+                    cell.addEventListener('mouseleave', () => cell.style.transform = 'scale(1)');
+                });
+            });
 
             refreshBtn.innerText = "重新抓取数据";
             refreshBtn.disabled = false;
 
+            // 2. 弹出热力词
             new WordHeatmapModal(this.app, heatmapWords).open();
         };
 
@@ -227,17 +242,15 @@ class DesktopStatsHeatmapView extends ItemView {
     }
 }
 
-// --- 插件主入口 ---
+// --- 插件主入口：极简稳健加载 ---
 export default class DesktopStatsPlugin extends Plugin {
     async onload() {
         this.registerView(VIEW_TYPE_STATS_HEATMAP, (leaf) => new DesktopStatsHeatmapView(leaf));
         
-        // 1. 侧边栏图标
         this.addRibbonIcon('heatmap', '打开产出热力看板', () => {
             this.activateView();
         });
 
-        // 2. 关键修复：正式向 Obsidian 注册命令，解决“未找到命令”的报错
         this.addCommand({
             id: 'open-heatmap-dashboard',
             name: '打开产出热力看板',
@@ -255,17 +268,15 @@ export default class DesktopStatsPlugin extends Plugin {
         const { workspace } = this.app;
         
         let existingLeaves = workspace.getLeavesOfType(VIEW_TYPE_STATS_HEATMAP);
-        for (let i = 1; i < existingLeaves.length; i++) {
-            existingLeaves[i].detach(); 
+        for (let i = 0; i < existingLeaves.length; i++) {
+            existingLeaves[i].detach(); // 安全清理所有的旧视图
         }
 
-        let leaf = existingLeaves.length > 0 ? existingLeaves[0] : null;
-
-        if (!leaf) {
-            leaf = workspace.getRightLeaf(false);
+        // 重新开启一个全新的安全视图
+        const leaf = workspace.getRightLeaf(false);
+        if (leaf) {
             await leaf.setViewState({ type: VIEW_TYPE_STATS_HEATMAP, active: true });
+            workspace.revealLeaf(leaf);
         }
-        
-        workspace.revealLeaf(leaf);
     }
 }
