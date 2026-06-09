@@ -25,7 +25,6 @@ interface SphereNode {
     filePaths: Set<string>;
 }
 
-// --- 物理级 3D 星系引擎 (加入全局视界动态缩放) ---
 class WordSphereEngine {
     container: HTMLElement;
     canvas: HTMLCanvasElement;
@@ -35,7 +34,6 @@ class WordSphereEngine {
     height: number = 0;
     tags: SphereNode[] = [];
     
-    // 全局视界缩放比例 (随侧边栏拖拽动态改变)
     containerScale: number = 1; 
 
     isDragging = false;
@@ -106,15 +104,14 @@ class WordSphereEngine {
         const rect = this.container.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
         
-        // 极致流体计算：动态设定容器安全范围
-        const safeRadiusWidth = (rect.width / 2) - 25; // 左右预留防裁切空间
-        const safeRadiusHeight = (rect.height / 2) - 20;
+        // 确保有足够的边缘安全距离，不让文字贴边
+        const safeRadiusWidth = (rect.width / 2) - 25; 
+        const safeRadiusHeight = (rect.height / 2) - 25;
         let newRadius = Math.min(safeRadiusWidth, safeRadiusHeight);
-        newRadius = Math.max(newRadius, 25); // 允许缩到极小尺寸
+        newRadius = Math.max(newRadius, 25); 
 
-        // 核心突破：生成全局缩放比例 (以 90px 正常半径为基准进行缩放)
-        // 无论拖多宽多窄，全局矩阵都会等比例放大缩小
-        this.containerScale = Math.max(0.3, Math.min(newRadius / 90, 1.3));
+        // 核心修改：缩放比例上限锁死在 1.1，下限放宽，防止宽边栏时字体大得蠢笨
+        this.containerScale = Math.max(0.4, Math.min(newRadius / 80, 1.1));
 
         if (this.radius > 0 && this.tags.length > 0 && this.radius !== newRadius) {
             const scaleFactor = newRadius / this.radius;
@@ -240,7 +237,6 @@ class WordSphereEngine {
                     const dx = tag.lx - this.hoveredTag.rx; 
                     const dy = tag.ly - this.hoveredTag.ry;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    // 斥力半径随侧边栏自适应动态调整，防止拥挤
                     const avoidRadius = Math.max(35, this.radius * 1.1); 
 
                     if (dist > 0 && dist < avoidRadius) {
@@ -286,9 +282,8 @@ class WordSphereEngine {
                 this.drawConnectionLine(cx, cy, item, neutralLineColor, colorNormal, colorAccent);
             });
 
-            // 中心奇点大小响应式缩放
             this.ctx.beginPath();
-            this.ctx.arc(cx, cy, Math.max(1, 2.5 * this.containerScale), 0, Math.PI * 2); 
+            this.ctx.arc(cx, cy, Math.max(1.5, 2.5 * this.containerScale), 0, Math.PI * 2); 
             this.ctx.fillStyle = colorNormal;
             this.ctx.fill();
 
@@ -325,8 +320,6 @@ class WordSphereEngine {
                 }
 
                 const depthScale = 0.65 + 0.5 * ((this.radius + tag.rz) / (2 * this.radius)); 
-                // 核心闭环：将全局缩放矩阵 (containerScale) 乘入最终的 Scale 变换中
-                // 这保证了文字视觉体积与侧边栏宽度始终完美匹配
                 const finalScale = depthScale * tag.currentScale * this.containerScale; 
 
                 const baseTransform = `translate(-50%, -50%) translate3d(${tag.rx}px, ${tag.ry}px, 0px)`;
@@ -355,7 +348,6 @@ class WordSphereEngine {
             depthWidth = 0.4;
         }
 
-        // 连线粗细也参与全局缩放
         depthWidth *= this.containerScale;
 
         if (depthOpacity <= 0) return;
@@ -557,7 +549,8 @@ class DesktopStatsHeatmapView extends ItemView {
                 const wordEl = document.createElement('div');
                 wordEl.innerText = word;
                 
-                const fontSize = Math.max(13, Math.min(28, 13 + (value/maxWordCount)*15));
+                // 核心修改：缩减基准字号，还原高级留白 (最高 22px，最低 11px)
+                const fontSize = Math.max(11, Math.min(22, 11 + (value/maxWordCount)*11));
                 const fontWeight = value > maxWordCount * 0.6 ? '700' : '400'; 
                 const filePaths = new Set(files.map(f => f.path));
 
