@@ -30,12 +30,11 @@ class WordSphereEngine {
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
     radius: number;
+    initRadius: number; // 核心：记录初始基准半径，用于完美计算文字缩放比例
     width: number = 0;
     height: number = 0;
     tags: SphereNode[] = [];
     
-    containerScale: number = 1; 
-
     isDragging = false;
     hoveredTag: SphereNode | null = null; 
     previousMouseX = 0; 
@@ -77,6 +76,7 @@ class WordSphereEngine {
     constructor(container: HTMLElement, radius: number) {
         this.container = container;
         this.radius = radius;
+        this.initRadius = radius; 
         
         this.canvas = document.createElement('canvas');
         this.canvas.style.position = 'absolute';
@@ -95,24 +95,24 @@ class WordSphereEngine {
         this.handleResize();
         this.setupMouseListeners();
 
-        // @ts-ignore
-        this.resizeObserver = new ResizeObserver(() => this.handleResize());
-        this.resizeObserver.observe(this.container);
+        const RO = (window as any).ResizeObserver;
+        if (RO) {
+            this.resizeObserver = new RO(() => this.handleResize());
+            this.resizeObserver.observe(this.container);
+        }
     }
 
     private handleResize() {
         const rect = this.container.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
         
-        // 确保有足够的边缘安全距离，不让文字贴边
-        const safeRadiusWidth = (rect.width / 2) - 25; 
-        const safeRadiusHeight = (rect.height / 2) - 25;
+        // 动态保持留白
+        const safeRadiusWidth = (rect.width / 2) - 20; 
+        const safeRadiusHeight = (rect.height / 2) - 20;
         let newRadius = Math.min(safeRadiusWidth, safeRadiusHeight);
-        newRadius = Math.max(newRadius, 25); 
+        newRadius = Math.max(newRadius, 30); // 允许缩到更小以适应高强度 UI 缩放
 
-        // 核心修改：缩放比例上限锁死在 1.1，下限放宽，防止宽边栏时字体大得蠢笨
-        this.containerScale = Math.max(0.4, Math.min(newRadius / 80, 1.1));
-
+        // 当尺寸变化时，不仅缩放当前物理位置，逻辑位置也必须无缝缩放
         if (this.radius > 0 && this.tags.length > 0 && this.radius !== newRadius) {
             const scaleFactor = newRadius / this.radius;
             this.tags.forEach(tag => {
@@ -212,9 +212,12 @@ class WordSphereEngine {
             const cx = this.width / 2;
             const cy = this.height / 2;
 
-            const colorAccent = getComputedColor('--interactive-accent', '#007AFF');
             const colorNormal = getComputedColor('--text-normal', '#333333');
+            const colorAccent = getComputedColor('--interactive-accent', '#007AFF');
             const neutralLineColor = '128, 128, 128'; 
+
+            // 核心：基于初始半径和当前物理半径，计算出绝对精准的字体缩放因子
+            const globalScaleFactor = this.radius / this.initRadius;
 
             this.tags.forEach(tag => {
                 const x1 = tag.lx * Math.cos(this.velocityY) - tag.lz * Math.sin(this.velocityY);
@@ -237,7 +240,7 @@ class WordSphereEngine {
                     const dx = tag.lx - this.hoveredTag.rx; 
                     const dy = tag.ly - this.hoveredTag.ry;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    const avoidRadius = Math.max(35, this.radius * 1.1); 
+                    const avoidRadius = Math.max(25, this.radius * 1.1); 
 
                     if (dist > 0 && dist < avoidRadius) {
                         const force = Math.pow((avoidRadius - dist) / avoidRadius, 2); 
@@ -279,17 +282,18 @@ class WordSphereEngine {
 
             renderList.forEach(item => {
                 if (item.rz >= 0) return;
-                this.drawConnectionLine(cx, cy, item, neutralLineColor, colorNormal, colorAccent);
+                this.drawConnectionLine(cx, cy, item, neutralLineColor, globalScaleFactor, colorNormal, colorAccent);
             });
 
             this.ctx.beginPath();
-            this.ctx.arc(cx, cy, Math.max(1.5, 2.5 * this.containerScale), 0, Math.PI * 2); 
+            // 中心奇点也会随着窗口等比例缩放
+            this.ctx.arc(cx, cy, Math.max(1, 2.5 * globalScaleFactor), 0, Math.PI * 2); 
             this.ctx.fillStyle = colorNormal;
             this.ctx.fill();
 
             renderList.forEach(item => {
                 if (item.rz < 0) return;
-                this.drawConnectionLine(cx, cy, item, neutralLineColor, colorNormal, colorAccent);
+                this.drawConnectionLine(cx, cy, item, neutralLineColor, globalScaleFactor, colorNormal, colorAccent);
             });
 
             renderList.forEach(item => {
@@ -320,7 +324,8 @@ class WordSphereEngine {
                 }
 
                 const depthScale = 0.65 + 0.5 * ((this.radius + tag.rz) / (2 * this.radius)); 
-                const finalScale = depthScale * tag.currentScale * this.containerScale; 
+                // 终极等比缩放矩阵：不管宿主环境怎么缩小放大，字体占据小球的物理面积比例始终锁定！
+                const finalScale = depthScale * tag.currentScale * globalScaleFactor; 
 
                 const baseTransform = `translate(-50%, -50%) translate3d(${tag.rx}px, ${tag.ry}px, 0px)`;
                 tag.el.style.transform = `${baseTransform} scale(${finalScale})`;
@@ -330,13 +335,13 @@ class WordSphereEngine {
                 tag.el.style.zIndex = Math.round(tag.rz + this.radius).toString();
             });
 
-            this.animationFrameId = requestAnimationFrame(animate);
+            this.animationFrameId = window.requestAnimationFrame(animate);
         };
 
         animate();
     }
 
-    private drawConnectionLine(cx: number, cy: number, item: SphereNode, neutralRGB: string, normalColor: string, accentColor: string) {
+    private drawConnectionLine(cx: number, cy: number, item: SphereNode, neutralRGB: string, globalScaleFactor: number, normalColor: string, accentColor: string) {
         let depthOpacity = 0;
         let depthWidth = 0.4;
         
@@ -348,7 +353,8 @@ class WordSphereEngine {
             depthWidth = 0.4;
         }
 
-        depthWidth *= this.containerScale;
+        // 连线粗细也跟随等比缩放
+        depthWidth *= globalScaleFactor;
 
         if (depthOpacity <= 0) return;
 
@@ -381,7 +387,7 @@ class WordSphereEngine {
 
     destroy() {
         this.isActive = false;
-        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+        if (this.animationFrameId) window.cancelAnimationFrame(this.animationFrameId);
         if (this.resizeObserver) this.resizeObserver.disconnect();
         document.removeEventListener('mousemove', this.onMouseMove);
         document.removeEventListener('mouseup', this.onMouseUp);
@@ -404,11 +410,11 @@ async function analyzeVaultData(app: App) {
             .replace(/[^\u4e00-\u9fa5a-zA-Z]/g, ' '); 
 
         let segments: any[] = [];
-        const IntlAny = Intl as any;
-        if (IntlAny.Segmenter) {
+        const IntlAny = (window as any).Intl;
+        if (IntlAny && IntlAny.Segmenter) {
             const segmenter = new IntlAny.Segmenter('zh-CN', { granularity: 'word' });
             const iterator = segmenter.segment(cleanText);
-            segments = Array.from(iterator);
+            segments = (Array as any).from(iterator);
         } else {
             const fallbackWords = cleanText.match(/[\u4e00-\u9fa5]{2,}|\b[a-zA-Z]{3,}\b/g) || [];
             segments = fallbackWords.map((w: string) => ({ segment: w, isWordLike: true }));
@@ -498,14 +504,14 @@ class DesktopStatsHeatmapView extends ItemView {
         container.addClass('stats-heatmap-dashboard-container');
 
         container.setAttr('style', `
-            padding: 8px; display: flex; flex-direction: column; height: 100%; overflow: hidden; 
+            padding: 12px 16px; display: flex; flex-direction: column; height: 100%; overflow: hidden; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-font-smoothing: antialiased; background-color: transparent;
         `);
 
         const headerDiv = container.createDiv({ 
             attr: { 
-                style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; flex-shrink: 0; cursor: pointer; opacity: 0.85; transition: opacity 0.2s ease;',
+                style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; flex-shrink: 0; cursor: pointer; opacity: 0.85; transition: opacity 0.2s ease;',
                 title: '点击重新构建突触'
             } 
         });
@@ -540,8 +546,9 @@ class DesktopStatsHeatmapView extends ItemView {
             const heatmapWords = await analyzeVaultData(this.app);
             const maxWordCount = heatmapWords.length > 0 ? heatmapWords[0].value : 1;
 
+            // 获取绝对准确的初始容器可用物理空间
             const containerMinSide = Math.min(heatmapDiv.clientWidth || 250, heatmapDiv.clientHeight || 250);
-            const baseRadius = Math.max((containerMinSide / 2) * 0.8, 25); 
+            const baseRadius = Math.max((containerMinSide / 2) * 0.8, 30); 
 
             this.sphereEngine = new WordSphereEngine(heatmapDiv, baseRadius);
 
@@ -549,8 +556,13 @@ class DesktopStatsHeatmapView extends ItemView {
                 const wordEl = document.createElement('div');
                 wordEl.innerText = word;
                 
-                // 核心修改：缩减基准字号，还原高级留白 (最高 22px，最低 11px)
-                const fontSize = Math.max(11, Math.min(22, 11 + (value/maxWordCount)*11));
+                // 核心控制：以初始侧边栏宽度，计算相对动态字体基座大小
+                // 假设 baseRadius 为 100，则字体区间为 12px - 26px
+                // 假设被强行压缩到 baseRadius = 50，字体自动等比缩小为 6px - 13px
+                const minFont = Math.max(8, baseRadius * 0.12); // 底线保证最小 8px 不至不可读
+                const maxFont = Math.max(16, baseRadius * 0.26);
+                const fontSize = Math.max(minFont, Math.min(maxFont, minFont + (value/maxWordCount)*(maxFont-minFont)));
+                
                 const fontWeight = value > maxWordCount * 0.6 ? '700' : '400'; 
                 const filePaths = new Set(files.map(f => f.path));
 
