@@ -12,7 +12,6 @@ const STOP_WORDS = new Set([
     '各位', '谢谢', '由于', '其实', '只要', '目前', '开始'
 ]);
 
-// 声明外部 API 接口以消除 any 警告
 interface SegmentData {
     segment: string;
     isWordLike: boolean;
@@ -94,7 +93,6 @@ class WordSphereEngine {
         this.radius = radius;
         this.initRadius = radius; 
         
-        // 遵循官方规范：使用 class 替代内联样式
         this.canvas = activeDocument.createElement('canvas');
         this.canvas.addClass('ts-canvas');
         this.container.appendChild(this.canvas);
@@ -106,7 +104,6 @@ class WordSphereEngine {
         this.handleResize();
         this.setupMouseListeners();
 
-        // Type-safe approach to ResizeObserver
         const RO = (window as unknown as { ResizeObserver: new (cb: () => void) => ResizeObserver }).ResizeObserver;
         if (RO) {
             this.resizeObserver = new RO(() => this.handleResize());
@@ -304,19 +301,15 @@ class WordSphereEngine {
                 
                 let baseOpacity = 0; let blur = 0; let color = 'var(--text-faint)';
                 
-                // --- 核心优化：光学级极浅景深衰减引擎 ---
                 if (item.zRatio > 0.6) {
-                    // 正前方核心区
                     baseOpacity = 0.85 + 0.15 * ((item.zRatio - 0.6) / 0.4);
                     blur = 0;
                     color = 'var(--text-normal)';
                 } else if (item.zRatio > 0) {
-                    // 前半球两侧区
                     baseOpacity = 0.25 + 0.6 * (item.zRatio / 0.6);
                     blur = 0.8 * (1 - item.zRatio / 0.6); 
                     color = 'var(--text-muted)';
                 } else {
-                    // 后半球背景区
                     baseOpacity = 0.03 + 0.17 * ((item.zRatio + 1) / 1);
                     blur = 1.0 + Math.min(3.5, Math.abs(item.zRatio) * 3.5); 
                     color = 'var(--text-faint)';
@@ -342,7 +335,6 @@ class WordSphereEngine {
 
                 const baseTransform = `translate(-50%, -50%) translate3d(${tag.rx}px, ${tag.ry}px, 0px) scale(${finalScale})`;
                 
-                // Use CSS variables instead of setting styles directly to satisfy strict ESLint rules
                 tag.el.style.setProperty('--ts-transform', baseTransform);
                 tag.el.style.setProperty('--ts-opacity', baseOpacity.toString());
                 tag.el.style.setProperty('--ts-color', color);
@@ -417,17 +409,18 @@ async function analyzeVaultData(app: App) {
     for (const file of files) {
         const content = await app.vault.cachedRead(file);
         const cleanText = content
-            .replace(/```[\s\S]*?```/g, ' ') 
+            .replace(/```[\s\S]*?
+```/g, ' ') 
             .replace(/---[\s\S]*?---/, ' ')  
             .replace(/<[^>]*>?/gm, ' ')      
             .replace(/https?:\/\/[^\s]+/g, ' ') 
-            .replace(/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g, ' ') 
+            // 修复了多余的 \ 转义符警告
+            .replace(/[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/g, ' ') 
             .replace(/[0-9a-fA-F]{8,}/g, ' ') 
             .replace(/[^\u4e00-\u9fa5a-zA-Z]/g, ' '); 
 
         let segments: SegmentData[] = [];
         
-        // Type-safe approach to Intl.Segmenter
         const intlNamespace = (window as unknown as { Intl: { Segmenter: new (locales: string, options: { granularity: string }) => IntlSegmenter } }).Intl;
         if (intlNamespace && intlNamespace.Segmenter) {
             const segmenter = new intlNamespace.Segmenter('zh-CN', { granularity: 'word' });
@@ -474,7 +467,8 @@ class WordContextModal extends Modal {
 
         const listContainer = contentEl.createDiv({ cls: 'ts-list-container' });
 
-        this.files.forEach(async (file) => {
+        // 修复了异步 Promise 循环警告，将 forEach 替换为 for...of
+        for (const file of this.files) {
             const content = await this.app.vault.cachedRead(file);
             const rawContent = content.replace(/\s+/g, ' '); 
             const safeWord = this.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
@@ -507,7 +501,7 @@ class WordContextModal extends Modal {
                     snippetDiv.appendChild(activeDocument.createTextNode('..."'));
                 }
             }
-        });
+        }
     }
     onClose() { this.contentEl.empty(); }
 }
@@ -561,7 +555,6 @@ class DesktopStatsHeatmapView extends ItemView {
                 const fontWeight = value > maxWordCount * 0.6 ? '700' : '400'; 
                 const filePaths = new Set(files.map(f => f.path));
 
-                // Properties handled by CSS variables in addTag and startAnimation
                 wordEl.addEventListener('click', () => new WordContextModal(this.app, word, files).open());
                 this.sphereEngine!.addTag(wordEl, fontSize, fontWeight, filePaths);
             });
@@ -592,8 +585,9 @@ class DesktopStatsHeatmapView extends ItemView {
             titleText.innerText = "拓扑网络";
         };
 
-        headerDiv.addEventListener('click', renderData);
-        window.setTimeout(renderData, 200); 
+        // 修复了 EventListener 异步警告
+        headerDiv.addEventListener('click', () => { void renderData(); });
+        window.setTimeout(() => { void renderData(); }, 200); 
     }
 
     async onClose() { 
@@ -604,12 +598,13 @@ class DesktopStatsHeatmapView extends ItemView {
 export default class DesktopStatsPlugin extends Plugin {
     async onload() {
         this.registerView(VIEW_TYPE_STATS_HEATMAP, (leaf) => new DesktopStatsHeatmapView(leaf));
-        this.addRibbonIcon('network', '打开拓扑网络', () => this.activateView());
-        this.addCommand({ id: 'open-typographic-insights', name: '打开拓扑网络', callback: () => this.activateView() });
+        // 修复了 Callback 异步警告
+        this.addRibbonIcon('network', '打开拓扑网络', () => { void this.activateView(); });
+        this.addCommand({ id: 'open-typographic-insights', name: '打开拓扑网络', callback: () => { void this.activateView(); } });
     }
     
-    // Removed detachLeavesOfType per Obsidian official plugin guidelines (Error: obsidianmd/no-detach-leaves-in-onunload)
-    async onunload() { }
+    // 修复了卸载生命周期的 async 警告
+    onunload() { }
     
     async activateView() {
         const { workspace } = this.app;
@@ -619,12 +614,8 @@ export default class DesktopStatsPlugin extends Plugin {
         if (existingLeaves.length > 0) {
             leaf = existingLeaves[0];
         } else {
-            const fileExplorerLeaves = workspace.getLeavesOfType('file-explorer');
-            if (fileExplorerLeaves.length > 0) {
-                leaf = workspace.createLeafBySplit(fileExplorerLeaves[0], 'horizontal');
-            } else {
-                leaf = workspace.getLeftLeaf(false) || workspace.getLeaf(false);
-            }
+            // 彻底修复了 API 版本超限错误！移除了可能产生兼容性问题的 getLeftLeaf
+            leaf = workspace.getLeaf(false);
             await leaf.setViewState({ type: VIEW_TYPE_STATS_HEATMAP, active: true });
         }
         
