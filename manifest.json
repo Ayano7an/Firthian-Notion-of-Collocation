@@ -1,10 +1,10 @@
 {
-  "id": "Desktop-WordCloud-Trends",
-  "name": "Desktop WordCloud & Trends",
-  "version": "1.6.0",
+  "id": "Obsidian-Thought-Synapse-Desktop",
+  "name": "Thought Synapse (Desktop)",
+  "version": "1.6.1",
   "minAppVersion": "1.0.0",
-  "description": "专为桌面端和高分辨率设备优化的知识洞察看板。",
-  "author": "Your Name",
-  "authorUrl": "https://github.com/liyaomingme/Desktop-WordCloud-Trends",
+  "description": "A 3D interactive knowledge topology graph and word cloud engine optimized for desktop devices.",
+  "author": "liyaoming",
+  "authorUrl": "https://github.com/liyaomingme/Obsidian-Thought-Synapse-Desktop",
   "isDesktopOnly": true
 }
