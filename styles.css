@@ -1,4 +1,4 @@
-/* --- Base Structure (Retained from Original) --- */
+/* --- 基础结构 (原版保留) --- */
 .stats-dashboard-container {
     padding: 20px 30px;
     display: flex;
@@ -10,9 +10,102 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* ... (Your original styles for .stats-header-row, .stats-refresh-btn, .panel-container, etc., remain here) ... */
+.stats-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    padding-bottom: 15px;
+    flex-shrink: 0;
+}
 
-/* --- Newly Added: Extracted from JS Inline Styles (To satisfy ESLint rules) --- */
+.stats-title {
+    margin: 0;
+    font-size: 1.6em;
+    font-weight: 600;
+}
+
+.stats-refresh-btn {
+    padding: 8px 20px;
+    cursor: pointer;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.stats-refresh-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    filter: brightness(1.1);
+}
+
+.stats-refresh-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 122, 255, 0.2);
+    filter: brightness(0.9);
+}
+
+.stats-content-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 30px;
+    flex: 1; 
+    min-height: 0; 
+}
+
+.panel-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(var(--background-primary-alt-rgb, 255, 255, 255), 0.65);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid rgba(142, 142, 147, 0.15);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow:
+        0 4px 24px -8px rgba(0, 0, 0, 0.1),
+        0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease;
+}
+
+.panel-container:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 32px -8px rgba(0, 0, 0, 0.15),
+        0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.stats-subtitle {
+    margin: 0 0 20px 0;
+    font-size: 1.1em;
+    color: var(--text-muted);
+    text-align: center;
+    font-weight: 500;
+}
+
+.canvas-wrapper {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+}
+
+/* 修复了 ESLint 警告，已移除所有的 !important */
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* --- 新增：替代 JS 内联样式，符合官方规范 --- */
 
 .stats-heatmap-dashboard-container {
     padding: 12px 16px; 
@@ -25,7 +118,6 @@
     background-color: transparent;
 }
 
-/* Header interactions */
 .ts-header {
     display: flex; 
     justify-content: space-between; 
@@ -47,7 +139,6 @@
 .ts-content-wrapper { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .ts-heatmap-container { flex: 1; display: flex; justify-content: center; align-items: center; background-color: transparent; overflow: hidden; position: relative; }
 
-/* Canvas */
 .ts-canvas {
     position: absolute;
     top: 0;
@@ -56,12 +147,12 @@
     height: 100%;
     pointer-events: none;
     z-index: 0;
+    display: block;
 }
 
-/* Cursor State */
-.ts-cursor-grabbing { cursor: grabbing !important; }
+/* 修复了 ESLint 警告，已移除 !important */
+.ts-cursor-grabbing { cursor: grabbing; }
 
-/* 3D Node Representation using CSS Variables for dynamic updates */
 .ts-node {
     position: absolute;
     left: 50%;
@@ -76,7 +167,6 @@
     user-select: none;
     transition: filter 0.2s, opacity 0.2s, color 0.2s;
     
-    /* Dynamically bound via style.setProperty in JS */
     transform: var(--ts-transform);
     opacity: var(--ts-opacity);
     color: var(--ts-color);
@@ -86,13 +176,11 @@
     font-weight: var(--ts-font-weight);
 }
 
-/* Modal Styling */
 .ts-modal { max-width: 850px; width: 90vw; border-radius: 20px; padding: 32px; box-shadow: 0 16px 40px rgba(0,0,0,0.08); }
 .ts-modal-title { margin: 0 0 10px 0; font-size: 1.8em; font-weight: 700; color: var(--interactive-accent); font-family: "SimSun", "STSong", "Songti SC", serif; letter-spacing: -0.5px; }
 .ts-modal-subtitle { margin: 0 0 24px 0; color: var(--text-muted); font-size: 1em; }
 .ts-list-container { max-height: 60vh; overflow-y: auto; padding-right: 12px; display: flex; flex-direction: column; gap: 16px; }
 
-/* Modal Cards */
 .ts-card { background: var(--background-primary); border: 1px solid var(--background-modifier-border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s ease; }
 .ts-card:hover { border-color: var(--interactive-accent); transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.04); }
 .ts-card-title { font-weight: 700; font-size: 1.1em; margin-bottom: 12px; color: var(--text-normal); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; align-items: center; }
