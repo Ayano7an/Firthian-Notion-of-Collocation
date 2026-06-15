@@ -409,12 +409,11 @@ async function analyzeVaultData(app: App) {
     for (const file of files) {
         const content = await app.vault.cachedRead(file);
         const cleanText = content
-            .replace(/```[\s\S]*?
-```/g, ' ') 
+            // 采用免 Markdown 干扰写法，彻底杜绝语法截断报错
+            .replace(new RegExp("`{3}[\\s\\S]*?`{3}", "g"), ' ') 
             .replace(/---[\s\S]*?---/, ' ')  
             .replace(/<[^>]*>?/gm, ' ')      
             .replace(/https?:\/\/[^\s]+/g, ' ') 
-            // 修复了多余的 \ 转义符警告
             .replace(/[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/g, ' ') 
             .replace(/[0-9a-fA-F]{8,}/g, ' ') 
             .replace(/[^\u4e00-\u9fa5a-zA-Z]/g, ' '); 
@@ -467,7 +466,6 @@ class WordContextModal extends Modal {
 
         const listContainer = contentEl.createDiv({ cls: 'ts-list-container' });
 
-        // 修复了异步 Promise 循环警告，将 forEach 替换为 for...of
         for (const file of this.files) {
             const content = await this.app.vault.cachedRead(file);
             const rawContent = content.replace(/\s+/g, ' '); 
@@ -585,7 +583,6 @@ class DesktopStatsHeatmapView extends ItemView {
             titleText.innerText = "拓扑网络";
         };
 
-        // 修复了 EventListener 异步警告
         headerDiv.addEventListener('click', () => { void renderData(); });
         window.setTimeout(() => { void renderData(); }, 200); 
     }
@@ -598,12 +595,10 @@ class DesktopStatsHeatmapView extends ItemView {
 export default class DesktopStatsPlugin extends Plugin {
     async onload() {
         this.registerView(VIEW_TYPE_STATS_HEATMAP, (leaf) => new DesktopStatsHeatmapView(leaf));
-        // 修复了 Callback 异步警告
         this.addRibbonIcon('network', '打开拓扑网络', () => { void this.activateView(); });
         this.addCommand({ id: 'open-typographic-insights', name: '打开拓扑网络', callback: () => { void this.activateView(); } });
     }
     
-    // 修复了卸载生命周期的 async 警告
     onunload() { }
     
     async activateView() {
@@ -614,7 +609,6 @@ export default class DesktopStatsPlugin extends Plugin {
         if (existingLeaves.length > 0) {
             leaf = existingLeaves[0];
         } else {
-            // 彻底修复了 API 版本超限错误！移除了可能产生兼容性问题的 getLeftLeaf
             leaf = workspace.getLeaf(false);
             await leaf.setViewState({ type: VIEW_TYPE_STATS_HEATMAP, active: true });
         }
