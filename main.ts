@@ -1,4 +1,4 @@
-import { App, Plugin, Modal, TFile, setIcon } from 'obsidian';
+import { App, Plugin, Modal, TFile, setIcon, PluginSettingTab, Setting } from 'obsidian';
 
 const STOP_WORDS = new Set([
     'the', 'and', 'for', 'that', 'this', 'with', 'from', 'https', 'com', 'org', 
@@ -26,6 +26,17 @@ interface SphereNode {
     renderState: string;
     filePaths: Set<string>;
 }
+
+// === 新增：插件设置接口与默认值 ===
+interface ThoughtSynapseSettings {
+    analyzeDuration: number; // 0 表示所有时间，其余为天数
+    containerHeight: number; // 容器高度
+}
+
+const DEFAULT_SETTINGS: ThoughtSynapseSettings = {
+    analyzeDuration: 0,
+    containerHeight: 340
+};
 
 class WordSphereEngine {
     container: HTMLElement;
@@ -83,7 +94,6 @@ class WordSphereEngine {
         this.canvas = activeDocument.createElement('canvas');
         this.canvas.addClass('ts-canvas');
         
-        // 彻底修复: 使用官方要求的 setCssStyles
         this.canvas.setCssStyles({
             position: 'absolute',
             top: '0',
@@ -138,7 +148,6 @@ class WordSphereEngine {
     addTag(tagEl: HTMLElement, baseFontSize: number, baseWeight: string, filePaths: Set<string>) {
         tagEl.addClass('ts-node');
         
-        // 彻底修复: 使用官方要求的 setCssStyles
         tagEl.setCssStyles({
             position: 'absolute',
             left: '50%',
@@ -300,7 +309,6 @@ class WordSphereEngine {
                 const finalScale = depthScale * tag.currentScale * globalScaleFactor; 
                 const baseTransform = `translate(-50%, -50%) translate3d(${tag.rx}px, ${tag.ry}px, 0px) scale(${finalScale})`;
                 
-                // 彻底修复: 集中使用 setCssStyles
                 tag.el.setCssStyles({
                     transform: baseTransform,
                     opacity: baseOpacity.toString(),
@@ -405,8 +413,18 @@ class WordContextModal extends Modal {
     onClose() { this.contentEl.empty(); }
 }
 
-async function analyzeVaultData(app: App) {
-    const files = app.vault.getMarkdownFiles();
+// === 核心修改：接收设置并进行时间过滤 ===
+async function analyzeVaultData(app: App, settings: ThoughtSynapseSettings) {
+    let files = app.vault.getMarkdownFiles();
+
+    // 过滤逻辑：按最后修改时间过滤文件
+    if (settings.analyzeDuration > 0) {
+        const cutoffTime = Date.now() - (settings.analyzeDuration * 24 * 60 * 60 * 1000);
+        files = files.filter(f => f.stat.mtime >= cutoffTime);
+    }
+
+    if (files.length === 0) return [];
+
     const wordData = new Map<string, { count: number, files: Set<TFile> }>();
 
     for (const file of files) {
@@ -453,6 +471,7 @@ async function analyzeVaultData(app: App) {
 }
 
 export default class DesktopStatsPlugin extends Plugin {
+    settings: ThoughtSynapseSettings;
     sphereEngine: WordSphereEngine | null = null;
     injectedContainer: HTMLElement | null = null;
     cachedWords: {word: string, value: number, files: TFile[]}[] | null = null;
@@ -461,8 +480,10 @@ export default class DesktopStatsPlugin extends Plugin {
     currentObserverTarget: HTMLElement | null = null;
 
     async onload() {
+        await this.loadSettings();
+
         this.app.workspace.onLayoutReady(async () => {
-            this.cachedWords = await analyzeVaultData(this.app);
+            this.cachedWords = await analyzeVaultData(this.app, this.settings);
             this.observeAndInject();
         });
 
@@ -474,18 +495,38 @@ export default class DesktopStatsPlugin extends Plugin {
             id: 'refresh-topology-network', 
             name: '刷新拓扑网络数据', 
             callback: () => { 
-                void (async () => {
-                    this.cachedWords = await analyzeVaultData(this.app);
-                    if (this.injectedContainer) {
-                        this.injectedContainer.remove();
-                        this.injectedContainer = null;
-                    }
-                    this.observeAndInject();
-                })();
+                void this.refreshTopology();
             } 
         });
+
+        // 注册设置面板
+        this.addSettingTab(new ThoughtSynapseSettingTab(this.app, this));
     }
     
+    async loadSettings() { 
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData()); 
+    }
+    async saveSettings() { 
+        await this.saveData(this.settings); 
+    }
+
+    // 独立的手动刷新方法，供设置面板和命令调用
+    async refreshTopology() {
+        this.cachedWords = await analyzeVaultData(this.app, this.settings);
+        if (this.injectedContainer) {
+            this.injectedContainer.remove();
+            this.injectedContainer = null;
+        }
+        this.observeAndInject();
+    }
+
+    // 独立的高度更新方法，直接应用不卡顿
+    updateContainerHeight() {
+        if (this.injectedContainer) {
+            this.injectedContainer.style.height = `${this.settings.containerHeight}px`;
+        }
+    }
+
     onunload() { 
         if (this.sphereEngine) this.sphereEngine.destroy();
         if (this.injectedContainer) this.injectedContainer.remove();
@@ -506,7 +547,6 @@ export default class DesktopStatsPlugin extends Plugin {
                 this.buildContainer(navContainer);
             }
 
-            // 彻底修复: 移除不必要的非空断言 (!)
             if (this.injectedContainer && !navContainer.contains(this.injectedContainer)) {
                 navContainer.appendChild(this.injectedContainer);
             }
@@ -534,6 +574,9 @@ export default class DesktopStatsPlugin extends Plugin {
 
         this.injectedContainer = activeDocument.createElement('div');
         this.injectedContainer.addClass('ts-desktop-parasitic-container');
+        
+        // 动态读取设置中的高度！
+        this.injectedContainer.style.height = `${this.settings.containerHeight}px`;
 
         const heatmapDiv = this.injectedContainer.createDiv();
         heatmapDiv.addClass('ts-desktop-heatmap-div');
@@ -588,5 +631,51 @@ export default class DesktopStatsPlugin extends Plugin {
         });
 
         this.sphereEngine.startAnimation();
+    }
+}
+
+// === 新增：官方标准设置面板 ===
+class ThoughtSynapseSettingTab extends PluginSettingTab {
+    plugin: DesktopStatsPlugin;
+
+    constructor(app: App, plugin: DesktopStatsPlugin) {
+        super(app, plugin);
+        this.plugin = plugin;
+    }
+
+    display(): void {
+        const { containerEl } = this;
+        containerEl.empty();
+
+        new Setting(containerEl).setName('Thought Synapse (桌面版) 设置').setHeading();
+
+        new Setting(containerEl)
+            .setName('词云分析时间范围')
+            .setDesc('仅提取最近被修改过的笔记，有助于聚焦近期思考热点。（修改后会自动重新分析）')
+            .addDropdown(drop => drop
+                .addOption('0', '所有时间 (全部笔记)')
+                .addOption('7', '最近 7 天')
+                .addOption('30', '最近 30 天')
+                .addOption('180', '最近半年')
+                .addOption('365', '最近一年')
+                .setValue(this.plugin.settings.analyzeDuration.toString())
+                .onChange(async (value) => {
+                    this.plugin.settings.analyzeDuration = Number(value);
+                    await this.plugin.saveSettings();
+                    void this.plugin.refreshTopology(); // 更改时间范围需要重新跑底层解析
+                }));
+
+        new Setting(containerEl)
+            .setName('星云容器高度 (px)')
+            .setDesc('调整 3D 星云在侧边栏底部占据的纵向高度。默认 340px。')
+            .addSlider(slider => slider
+                .setLimits(200, 800, 10)
+                .setValue(this.plugin.settings.containerHeight)
+                .setDynamicTooltip()
+                .onChange(async (value) => {
+                    this.plugin.settings.containerHeight = value;
+                    await this.plugin.saveSettings();
+                    this.plugin.updateContainerHeight(); // 仅更改高度，极其丝滑
+                }));
     }
 }
