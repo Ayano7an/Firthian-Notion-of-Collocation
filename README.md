@@ -29,7 +29,11 @@
 
 <div align="center">
   
-<img src="https://github.com/user-attachments/assets/74b43444-c6c7-4340-97c7-e6f549a175af" width="800" alt="浮光拾影 桌面版主界面">
+<div align="center">
+
+<img src="https://github.com/user-attachments/assets/74b43444-c6c7-4340-97c7-e6f549a175af" width="350" alt="浮光掠影 桌面版主界面">
+
+</div>
 
 
 
