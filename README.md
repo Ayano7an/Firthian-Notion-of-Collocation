@@ -10,7 +10,8 @@
 <br>
 
 <!-- 🌟 替换：主视觉效果图（建议使用宽度较宽的横图或全景 GIF） -->
-<img src="这里填入你的主界面效果图URL" width="800" alt="主视觉效果图">
+<img width="864" height="1821" alt="浮光识影手机" src="https://github.com/user-attachments/assets/f27e9994-3569-4c69-ba09-e9d09cef1d37" />
+
 
 </div>
 
