@@ -44,9 +44,15 @@
 
 <div align="center">
 
-| 微信赞赏 (WeChat Pay) | 支付宝赞赏 (Alipay) |
-| :---: | :---: |
-| <img src="https://github.com/user-attachments/assets/bf88c060-67b0-4fbd-8a7d-c0e1d850ee3d" width="220" alt="微信赞赏码"> | <img src="这里填入你的支付宝收款码URL" width="220" alt="支付宝收款码"> |
+<div align="center">
+
+<img src="https://github.com/user-attachments/assets/bf88c060-67b0-4fbd-8a7d-c0e1d850ee3d" width="260" alt="二合一赞赏码">
+
+*( 支持使用 微信 / 支付宝 扫码 )*
+
+**✨ 感谢你的支持与陪伴！✨**
+
+</div>
 
 
 **✨ 感谢你的支持与陪伴！✨**
