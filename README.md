@@ -27,11 +27,9 @@
 
 ### 📸 视觉预览 (Gallery)
 
-<div align="center">
-  
-<div align="center">
+### 📸 视觉预览 (Gallery)
 
-<img src="https://github.com/user-attachments/assets/74b43444-c6c7-4340-97c7-e6f549a175af" width="350" alt="浮光掠影 桌面版主界面">
+<img src="https://github.com/user-attachments/assets/69385261-9158-43eb-b6f1-d4b4292f89c4" width="350" alt="视觉预览图">
 
 </div>
 
