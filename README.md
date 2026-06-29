@@ -25,15 +25,12 @@
 
 “浮光拾影”不仅仅是一个侧边栏词云工具，它是你个人知识库的“物理引擎”。它通过真实的 3D 星云交互，将你散落的笔记、高频词汇与思维碎片连接起来，让知识的流转可视化、可触摸，为你的数字花园赋予呼吸感。
 
-### 📸 视觉预览 (Gallery)
 
 ### 📸 视觉预览 (Gallery)
 
-<img src="https://github.com/user-attachments/assets/69385261-9158-43eb-b6f1-d4b4292f89c4" width="350" alt="视觉预览图">
-
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/69385261-9158-43eb-b6f1-d4b4292f89c4" width="350" alt="视觉预览图">
 </div>
-
-
 
 </div>
 
