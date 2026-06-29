@@ -46,7 +46,7 @@
 
 | 微信赞赏 (WeChat Pay) | 支付宝赞赏 (Alipay) |
 | :---: | :---: |
-<img width="900" height="1200" alt="微信图片_20260629092329_248_12" src="https://github.com/user-attachments/assets/bf88c060-67b0-4fbd-8a7d-c0e1d850ee3d" />
+| <img src="https://github.com/user-attachments/assets/bf88c060-67b0-4fbd-8a7d-c0e1d850ee3d" width="220" alt="微信赞赏码"> | <img src="这里填入你的支付宝收款码URL" width="220" alt="支付宝收款码"> |
 
 
 **✨ 感谢你的支持与陪伴！✨**
