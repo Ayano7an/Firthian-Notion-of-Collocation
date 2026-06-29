@@ -97,3 +97,4 @@ Unlike traditional 2D graph views, **Thought Synapse** is an interactive, analyt
 <div align="right">
   <a href="#thought-synapse-desktop">⇧ 回到顶部</a>
 </div>
+<img width="864" height="1820" alt="岁时案台电脑" src="https://github.com/user-attachments/assets/130e1575-f0a2-4ec2-a843-3b291a511a63" />
