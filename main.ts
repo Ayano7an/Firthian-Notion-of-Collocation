@@ -473,17 +473,18 @@ export default class DesktopStatsPlugin extends Plugin {
     injectedContainer: HTMLElement | null = null;
     cachedWords: {word: string, value: number, files: TFile[]}[] | null = null;
     
-    mutationObserver: MutationObserver | null = null;
-    currentObserverTarget: HTMLElement | null = null;
-    private retryCount = 0; // 新增：重试计数器
-
     async onload() {
         await this.loadSettings();
 
         this.app.workspace.onLayoutReady(async () => {
             this.cachedWords = await analyzeVaultData(this.app, this.settings);
-            // 核心修改：使用智能轮询代替直接调用
             this.ensureInjection();
+
+            // ✨ 核心终极修复：启用 1秒/次 的无脑心跳探测 ✨
+            // 如果底层 DOM 突然被 Obsidian 刷没了，它会在 1 秒内自动挂载回去！
+            this.registerInterval(window.setInterval(() => {
+                this.ensureInjection();
+            }, 1000));
         });
 
         this.registerEvent(this.app.workspace.on('layout-change', () => {
@@ -527,65 +528,38 @@ export default class DesktopStatsPlugin extends Plugin {
     onunload() { 
         if (this.sphereEngine) this.sphereEngine.destroy();
         if (this.injectedContainer) this.injectedContainer.remove();
-        if (this.mutationObserver) this.mutationObserver.disconnect();
         this.cachedWords = null;
     }
     
-    // 核心修改：新增智能重试封装方法
+    // ✨ 绝对无脑、死咬不放的注入逻辑
     ensureInjection() {
-        this.retryCount = 0;
-        this.attemptInject();
-    }
-
-    // 核心修改：阶梯式轮询查找文件树 DOM
-    private attemptInject() {
-        const success = this.observeAndInject();
-        if (!success && this.retryCount < 10) {
-            this.retryCount++;
-            window.setTimeout(() => this.attemptInject(), 400); // 没找到？等 400ms 再试
-        }
-    }
-
-    // 核心修改：将 void 返回值改为 boolean，供上面判断是否成功
-    observeAndInject(): boolean {
         try {
-            const fileExplorerLeaves = this.app.workspace.getLeavesOfType('file-explorer');
-            if (fileExplorerLeaves.length === 0) return false; 
+            const leaves = this.app.workspace.getLeavesOfType('file-explorer');
+            if (leaves.length === 0) return; 
 
-            const fileExplorerContainer = fileExplorerLeaves[0].view.containerEl;
+            const fileExplorerContainer = leaves[0].view.containerEl;
             const navContainer = fileExplorerContainer.querySelector('.nav-files-container') as HTMLElement;
-            if (!navContainer) return false; // 还没渲染好，返回 false 触发重试
+            
+            // 还没渲染好的时候直接退出，等下一秒心跳重试
+            if (!navContainer) return; 
 
+            // 如果容器还没建，先建好（不挂载）
             if (!this.injectedContainer) {
-                this.buildContainer(navContainer);
+                this.buildContainer();
             }
 
-            if (this.injectedContainer && !navContainer.contains(this.injectedContainer)) {
+            // 【关键判断】：看看我们的容器，是不是在*当前最新*的导航容器里？
+            // 如果父节点变了（或者不在里面），强行塞进去！
+            if (this.injectedContainer && navContainer !== this.injectedContainer.parentElement) {
                 navContainer.appendChild(this.injectedContainer);
             }
 
-            if (this.currentObserverTarget !== navContainer) {
-                if (this.mutationObserver) this.mutationObserver.disconnect();
-                
-                this.mutationObserver = new MutationObserver(() => {
-                    if (this.injectedContainer && !navContainer.contains(this.injectedContainer)) {
-                        navContainer.appendChild(this.injectedContainer);
-                    }
-                });
-                
-                this.mutationObserver.observe(navContainer, { childList: true });
-                this.currentObserverTarget = navContainer;
-            }
-            
-            return true; // 成功挂载
-
         } catch (e) {
-            console.error("Topology Observer Error: ", e);
-            return false;
+            console.error("Topology Injection Error: ", e);
         }
     }
 
-    buildContainer(navContainer: HTMLElement) {
+    buildContainer() {
         if (this.sphereEngine) this.sphereEngine.destroy();
 
         this.injectedContainer = activeDocument.createElement('div');
@@ -595,15 +569,14 @@ export default class DesktopStatsPlugin extends Plugin {
 
         const heatmapDiv = this.injectedContainer.createDiv();
         heatmapDiv.addClass('ts-desktop-heatmap-div');
-
-        navContainer.appendChild(this.injectedContainer);
         
         const heatmapWords = this.cachedWords || [];
         if (heatmapWords.length === 0) return;
 
         const maxWordCount = heatmapWords[0].value;
-        const containerMinSide = Math.min(heatmapDiv.clientWidth || 250, heatmapDiv.clientHeight || 250);
-        const baseRadius = Math.max((containerMinSide / 2) * 0.8, 45); 
+        
+        // 初始给个默认半径，后面挂载后 ResizeObserver 会自动矫正
+        const baseRadius = 120; 
 
         this.sphereEngine = new WordSphereEngine(heatmapDiv, baseRadius);
 
