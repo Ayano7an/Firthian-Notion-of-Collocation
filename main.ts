@@ -27,14 +27,17 @@ interface SphereNode {
     filePaths: Set<string>;
 }
 
+// ✨ 新增 customStopWords 设置项
 interface ThoughtSynapseSettings {
     analyzeDuration: number; 
     containerHeight: number; 
+    customStopWords: string;
 }
 
 const DEFAULT_SETTINGS: ThoughtSynapseSettings = {
     analyzeDuration: 0,
-    containerHeight: 340
+    containerHeight: 340,
+    customStopWords: ""
 };
 
 class WordSphereEngine {
@@ -424,6 +427,10 @@ async function analyzeVaultData(app: App, settings: ThoughtSynapseSettings) {
 
     const wordData = new Map<string, { count: number, files: Set<TFile> }>();
 
+    // ✨ 核心修改：解析用户设置的自定义屏蔽词
+    const customWordsArray = settings.customStopWords.split(/[,，\s]+/).filter(w => w.trim().length > 0);
+    const customStopWordsSet = new Set(customWordsArray);
+
     for (const file of files) {
         const content = await app.vault.cachedRead(file);
         const cleanText = content
@@ -449,7 +456,9 @@ async function analyzeVaultData(app: App, settings: ThoughtSynapseSettings) {
         for (const { segment, isWordLike } of segments) {
             if (!isWordLike) continue; 
             const w = segment.toLowerCase().trim();
-            if (STOP_WORDS.has(w)) continue;
+            
+            // ✨ 如果在默认屏蔽库 或 自定义屏蔽库 中，则直接跳过
+            if (STOP_WORDS.has(w) || customStopWordsSet.has(w)) continue;
 
             const isChinese = /[\u4e00-\u9fa5]/.test(w);
             if ((isChinese && w.length >= 2) || (!isChinese && w.length >= 3 && w.length <= 20)) {
@@ -530,8 +539,6 @@ export default class DesktopStatsPlugin extends Plugin {
     }
     
     ensureInjection() {
-        // ✨ 致命缺陷终极防御：
-        // 如果底层数据还是空（分析未完成），绝对不准去创建那具“空壳尸体”！
         if (!this.cachedWords || this.cachedWords.length === 0) return;
 
         try {
@@ -543,7 +550,6 @@ export default class DesktopStatsPlugin extends Plugin {
             
             if (!navContainer) return; 
 
-            // 只有当数据准备好了，才去渲染外壳和内部3D引擎
             if (!this.injectedContainer) {
                 this.buildContainer();
             }
@@ -558,7 +564,6 @@ export default class DesktopStatsPlugin extends Plugin {
     }
 
     buildContainer() {
-        // ✨ 第二道防线：即使进来了，没数据也不画，直接退！
         const heatmapWords = this.cachedWords || [];
         if (heatmapWords.length === 0) return;
 
@@ -661,5 +666,22 @@ class ThoughtSynapseSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                     this.plugin.updateContainerHeight();
                 }));
+
+        // ✨ 新增：高颜值的自定义屏蔽词输入框
+        new Setting(containerEl)
+            .setName('自定义屏蔽词库')
+            .setDesc('在此输入你不想在星云中看到的词汇（如：大家, 就是, 你的），支持使用空格或逗号分隔。设置后星云将立刻重新聚合。')
+            .addTextArea(text => {
+                text.inputEl.addClass('ts-desktop-custom-textarea');
+                text
+                    .setPlaceholder('输入要屏蔽的无效词汇...')
+                    .setValue(this.plugin.settings.customStopWords)
+                    .onChange(async (value) => {
+                        this.plugin.settings.customStopWords = value;
+                        await this.plugin.saveSettings();
+                        // 桌面端专属：输入完成立刻无缝重绘画布
+                        void this.plugin.refreshTopology();
+                    });
+            });
     }
 }
