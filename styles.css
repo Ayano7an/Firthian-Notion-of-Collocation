@@ -1,26 +1,23 @@
-/* --- 桌面端文件栏寄生容器 --- */
-.ts-desktop-parasitic-container {
+/* --- 设置面板自定义文本框美化 --- */
+.ts-desktop-custom-textarea {
     width: 100%;
-    height: 340px; /* 给 3D 星云留出足够的纵向空间 */
-    margin: 20px 0;
-    display: flex;
-    flex-shrink: 0; 
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    background-color: transparent;
-    /* 桌面端必须开启鼠标事件，以支持物理拖拽和悬停共现 */
-    pointer-events: auto; 
-    border-top: 1px solid var(--background-modifier-border);
-    padding-top: 10px;
+    min-width: 260px;
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-normal);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    resize: vertical; /* 只允许上下拉伸，保持排版不乱 */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.ts-desktop-heatmap-div {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    position: relative;
+/* 沉浸式呼吸发光焦点 */
+.ts-desktop-custom-textarea:focus {
+    border-color: var(--interactive-accent);
+    background-color: var(--background-primary-alt);
+    box-shadow: 0 0 0 3px rgba(var(--interactive-accent-rgb), 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    outline: none;
 }
