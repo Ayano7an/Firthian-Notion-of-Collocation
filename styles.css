@@ -1,3 +1,29 @@
+/* --- 桌面端文件栏寄生容器 --- */
+.ts-desktop-parasitic-container {
+    width: 100%;
+    height: 340px; /* 给 3D 星云留出足够的纵向空间 */
+    margin: 20px 0;
+    display: flex;
+    flex-shrink: 0; 
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background-color: transparent;
+    /* 桌面端必须开启鼠标事件，以支持物理拖拽和悬停共现 */
+    pointer-events: auto; 
+    border-top: 1px solid var(--background-modifier-border);
+    padding-top: 10px;
+}
+
+.ts-desktop-heatmap-div {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+}
 /* --- 设置面板自定义文本框美化 --- */
 .ts-desktop-custom-textarea {
     width: 100%;
