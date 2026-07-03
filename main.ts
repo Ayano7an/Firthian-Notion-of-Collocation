@@ -27,7 +27,7 @@ interface SphereNode {
     filePaths: Set<string>;
 }
 
-// ✨ 新增 customStopWords 设置项
+// ✨ 修改点 1：新增 customStopWords 设置项
 interface ThoughtSynapseSettings {
     analyzeDuration: number; 
     containerHeight: number; 
@@ -427,8 +427,8 @@ async function analyzeVaultData(app: App, settings: ThoughtSynapseSettings) {
 
     const wordData = new Map<string, { count: number, files: Set<TFile> }>();
 
-    // ✨ 核心修改：解析用户设置的自定义屏蔽词
-    const customWordsArray = settings.customStopWords.split(/[,，\s]+/).filter(w => w.trim().length > 0);
+    // ✨ 修改点 2：解析并应用用户填入的自定义屏蔽词
+    const customWordsArray = (settings.customStopWords || "").split(/[,，\s]+/).filter(w => w.trim().length > 0);
     const customStopWordsSet = new Set(customWordsArray);
 
     for (const file of files) {
@@ -456,8 +456,7 @@ async function analyzeVaultData(app: App, settings: ThoughtSynapseSettings) {
         for (const { segment, isWordLike } of segments) {
             if (!isWordLike) continue; 
             const w = segment.toLowerCase().trim();
-            
-            // ✨ 如果在默认屏蔽库 或 自定义屏蔽库 中，则直接跳过
+            // ✨ 修改点 3：增加与自定义词库的合并过滤
             if (STOP_WORDS.has(w) || customStopWordsSet.has(w)) continue;
 
             const isChinese = /[\u4e00-\u9fa5]/.test(w);
@@ -667,21 +666,21 @@ class ThoughtSynapseSettingTab extends PluginSettingTab {
                     this.plugin.updateContainerHeight();
                 }));
 
-        // ✨ 新增：高颜值的自定义屏蔽词输入框
+        // ✨ 修改点 4：使用 Obsidian 原生最基础、最稳妥的 TextArea 组件
         new Setting(containerEl)
             .setName('自定义屏蔽词库')
-            .setDesc('在此输入你不想在星云中看到的词汇（如：大家, 就是, 你的），支持使用空格或逗号分隔。设置后星云将立刻重新聚合。')
+            .setDesc('在此输入你想屏蔽的无效词汇（如：大家, 就是, 你的），支持空格或逗号分隔。设置后星云将立刻重新聚合。')
             .addTextArea(text => {
-                text.inputEl.addClass('ts-desktop-custom-textarea');
                 text
                     .setPlaceholder('输入要屏蔽的无效词汇...')
                     .setValue(this.plugin.settings.customStopWords)
                     .onChange(async (value) => {
                         this.plugin.settings.customStopWords = value;
                         await this.plugin.saveSettings();
-                        // 桌面端专属：输入完成立刻无缝重绘画布
-                        void this.plugin.refreshTopology();
+                        void this.plugin.refreshTopology(); // 立刻刷新
                     });
+                text.inputEl.rows = 3;
+                text.inputEl.cols = 25;
             });
     }
 }
