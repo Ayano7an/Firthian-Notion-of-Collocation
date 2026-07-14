@@ -24,6 +24,9 @@ An interactive linguistic visualization kit for your Obsidian vault, surfacing i
 
 ## Not available on mobile
 
+
 ## Acknowledge
-I use Stopword compiled by [Gene Diaz](https://github.com/genediazjr)
-This program is forked from [liyaoming](https://github.com/liyaomingme/Obsidian-Thought-Synapse-Desktop)
+I have used Stopword lists compiled by [Gene Diaz](https://github.com/genediazjr)
+This program is forked from [liyaoming](https://github.com/liyaomingme/Obsidian-Thought-Synapse-Desktop).
+
+
