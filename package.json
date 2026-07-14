@@ -1,13 +1,13 @@
 {
-  "name": "thought-synapse-desktop",
-  "version": "1.7.6",
-  "description": "A 3D interactive knowledge topology graph engine.",
+  "name": "kwic",
+  "version": "0.0.1",
+  "description": "A Firthian collocation explorer grounded in corpus linguistics.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production"
   },
-  "author": "Li Yaoming",
+  "author": "ayano7an",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "18.11.0",

@@ -1,0 +1,22 @@
+# Build output (generated from main.ts — commit only if releasing)
+
+
+# Dependencies
+node_modules/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Obsidian local settings (if repo lives inside a vault)
+.obsidian/
+
+# Editor
+.vscode/
+.idea/
+.cursor 
+
+# Environment
+*.env

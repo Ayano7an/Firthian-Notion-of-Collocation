@@ -1,18 +1,13 @@
-/* --- 桌面端文件栏寄生容器 --- */
+/* ── Container ─────────────────────────────────────────────────────────────── */
 .ts-desktop-parasitic-container {
     width: 100%;
-    height: 340px; /* 给 3D 星云留出足够的纵向空间 */
-    margin: 20px 0;
+    height: 400px;
     display: flex;
-    flex-shrink: 0; 
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
+    flex-shrink: 0;
     position: relative;
-    background-color: transparent;
-    /* 桌面端必须开启鼠标事件，以支持物理拖拽和悬停共现 */
-    pointer-events: auto; 
+    pointer-events: auto;
     border-top: 1px solid var(--background-modifier-border);
-    padding-top: 10px;
 }
 
 .ts-desktop-heatmap-div {
@@ -24,7 +19,154 @@
     overflow: hidden;
     position: relative;
 }
-/* --- 设置面板自定义文本框美化 --- */
+
+/* ── Sphere nodes ──────────────────────────────────────────────────────────── */
+.ts-node {
+    white-space: nowrap;
+    user-select: none;
+    transition: color 0.15s;
+}
+
+/* ── Collocate overlay panel ───────────────────────────────────────────────── */
+.ts-coloc-overlay {
+    position: absolute;
+    z-index: 30;
+    min-width: 120px;
+    max-width: 160px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    pointer-events: auto;
+    opacity: 0;
+    transform: scale(0.93) translateY(4px);
+    transition: opacity 0.14s ease, transform 0.14s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.11);
+}
+.ts-coloc-overlay--visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.ts-ov-pivot {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ts-ov-chip {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 3px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    animation: ts-chip-in 0.16s ease both;
+    transition: background 0.1s;
+}
+.ts-ov-chip:hover { background: var(--background-modifier-hover); }
+
+@keyframes ts-chip-in {
+    from { opacity: 0; transform: translateX(-5px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.ts-ov-word {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-normal);
+}
+.ts-ov-freq {
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-left: 6px;
+}
+
+/* ── KWIC Modal ────────────────────────────────────────────────────────────── */
+.ts-modal { max-width: 720px; }
+
+.ts-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.ts-modal-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.ts-list-container { display: flex; flex-direction: column; gap: 8px; }
+
+.ts-card {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.ts-card:hover {
+    border-color: var(--interactive-accent);
+    background: var(--background-modifier-hover);
+}
+
+.ts-card-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-normal);
+    margin-bottom: 6px;
+}
+.ts-card-icon { display: flex; align-items: center; color: var(--text-muted); }
+
+.ts-kwic-row {
+    display: flex;
+    align-items: baseline;
+    font-size: 12px;
+    line-height: 1.6;
+    font-family: var(--font-monospace);
+    border-left: 2px solid var(--background-modifier-border);
+    padding-left: 8px;
+    margin-bottom: 2px;
+}
+.ts-kwic-left {
+    text-align: right;
+    flex: 1;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    /* no direction:rtl — it breaks inline colored spans */
+    text-overflow: ellipsis;
+}
+.ts-kwic-pivot {
+    font-weight: 700;
+    color: var(--text-normal);
+    background: rgba(var(--color-yellow-rgb, 234,179,8), 0.25);
+    border-radius: 2px;
+    padding: 0 2px;
+    flex-shrink: 0;
+    margin: 0 4px;
+}
+.ts-kwic-right {
+    flex: 1;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ts-kwic-partner {
+    font-weight: 700;
+    color: #0000EE;
+}
+
+/* ── Settings textarea ──────────────────────────────────────────────────────  */
 .ts-desktop-custom-textarea {
     width: 100%;
     min-width: 260px;
@@ -35,15 +177,9 @@
     font-size: 14px;
     line-height: 1.5;
     color: var(--text-normal);
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    resize: vertical; /* 只允许上下拉伸，保持排版不乱 */
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    resize: vertical;
 }
-
-/* 沉浸式呼吸发光焦点 */
 .ts-desktop-custom-textarea:focus {
     border-color: var(--interactive-accent);
-    background-color: var(--background-primary-alt);
-    box-shadow: 0 0 0 3px rgba(var(--interactive-accent-rgb), 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.05);
     outline: none;
 }

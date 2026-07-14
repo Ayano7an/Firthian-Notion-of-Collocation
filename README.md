@@ -1,68 +1,29 @@
-<div align="center">
+# Towards a Firthian Notion of Collocation
 
-# ✨ Thought Synapse (Desktop) | 浮光拾影
+An interactive linguistic visualization kit for your Obsidian vault, surfacing implicit but habitual lexical patterns in your writing.
 
-*An interactive, visually stunning 3D semantic network for your Obsidian vault.*
-一款具备超强可视化交互与极光美学的 Obsidian 知识拓扑中枢。
+## Features
 
-[ 🇬🇧 English ](#english) | [ 🇨🇳 简体中文 ](#简体中文)
+- **Word sphere**: A 3D rotating sphere of your most frequent collocate words. Drag to rotate.
+- **Window-level co-occurrence**: Hover any node to see its collocates within a ±N token sliding window.
+- **KWIC view**: Click any collocate in the hover panel to open a Key Word in Context view, with the partner word highlighted. Click a note card to jump directly to the source.
+- **Time filter**: Optionally restrict analysis to notes modified within the last 7 days / 30 days / 6 months / year.
 
-<br>
-
-<!-- 🌟 替换：主视觉效果图（建议使用宽度较宽的横图或全景 GIF） -->
-<img src="https://github.com/user-attachments/assets/f05cbc8d-de54-4046-afef-d142387f1c47" width="800" alt="浮光掠影 桌面版主界面">
-
-
-</div>
-
----
-
-## 🇨🇳 简体中文
-
-> [!warning] 📱 移动端用户请注意
-> 受限于移动端 UI 布局与底层的物理渲染引擎，**手机/平板端与桌面端采用完全不同的底层架构**。
-> 为了保证最佳的视觉与交互体验，如果您主要在手机端使用，**请勿混用此版本**。请前往安装移动端专属竖版：`Thought Synapse (Mobile)`
-
-“浮光拾影”不仅仅是一个侧边栏词云工具，它是你个人知识库的“物理引擎”。它通过真实的 3D 星云交互，将你散落的笔记、高频词汇与思维碎片连接起来，让知识的流转可视化、可触摸，为你的数字花园赋予呼吸感。
+- **悬浮星云交互**：内置球面可視化界面，鼠标拖拽角落，即可转动。
+- **悬停共現**：將光標懸停在任意節點上後，可查看目標詞的窗口內共現詞。
+- **KWIC**：点击任意悬浮词汇的窗口共現詞，即可查看KWIC視圖，并可一键穿梭直达原笔记正文。
+- **時間序列篩選**：支持在设置中按时间维度（如最近 7 天 / 30 天 / 半年）过滤笔记。
 
 
-### 🌟 核心特性 (Features)
+## Installation
 
-- **🌌 悬浮星云交互**：内置真实物理引擎。鼠标拖拽即可转动你的知识星云，物理阻尼与避免重叠的碰撞算法带来极致顺滑的把玩体验。
-- **🔗 悬停共现 (Co-occurrence)**：鼠标悬停在某个核心词上，瞬间高亮并点亮所有与之在同一篇笔记中出现过的关联词汇，帮你发现隐藏的思维突触。
-- **🎯 一键溯源**：点击任意悬浮词汇，立刻弹出精美的上下文语境切片，并可一键穿梭直达原笔记正文。
-- **⏳ 时光过滤引擎**：支持在设置中按时间维度（如最近 7 天 / 30 天 / 半年）过滤笔记，让你剥离历史噪音，聚焦当下的思考脉络。
+1. Clone this repository.
+2. Move the folder into `<your-vault>/.obsidian/plugins/`.
+3. In Obsidian: Settings → Community plugins → disable Safe mode → enable *Firthian Collocation*.
 
-### ⚙️ 安装与配置 (Installation)
 
-1. 在 Obsidian 社区插件市场搜索 **Thought Synapse** (或按作者名 `liyaoming` 搜索) 并安装带有 `(Desktop)` 后缀的版本。
-2. **极客级自定义**：在插件设置中，你可以自由滑动调节 3D 星云在侧边栏的专属高度（默认 340px），完美适配你的宽屏显示器。
-3. **自适应守护**：搭载底层心跳巡检机制，无论侧边栏如何切换与折叠，星云始终稳定悬浮。
+## Not available on mobile
 
----
-
-### ☕ 赞赏与支持 (Sponsor)
-
-*“把冷冰冰的代码，织成你的知识宇宙。”*
-
-作为一名独立开发者，我试图抹平“技术”与“审美”的边界。如果“浮光拾影”为你的日常记录带来了视觉上的愉悦，或者提升了你的知识管理效率，欢迎请开发者喝杯咖啡！
-
-你的认可是我持续打磨产品细节、对抗掉头发的最大动力。❤️
-
-<div align="center">
-
-<img src="https://github.com/user-attachments/assets/bf88c060-67b0-4fbd-8a7d-c0e1d850ee3d" width="260" alt="二合一赞赏码">
-
-*( 支持使用 微信 / 支付宝 扫码 )*
-
-**✨ 感谢你的支持与陪伴！✨**
-
-</div>
-
----
-
-### 💬 交流与反馈
-
-欢迎加入我们的数字美学社群！遇到任何 Bug、排版错位，或是对新功能有绝妙的灵感，请带上你的 **设备型号 + Obsidian 版本号** 进行反馈。
-- **GitHub Issues**: [点击提交反馈](https://github.com/liyaomingme/Obsidian-Thought-Synapse-Desktop/issues)
-- **小红书同频交流**: 搜索作者 `李耀明` 获取最新插件动态与社群入口。
+## Acknowledge
+I use Stopword compiled by [Gene Diaz](https://github.com/genediazjr)
+This program is forked from [liyaoming](https://github.com/liyaomingme/Obsidian-Thought-Synapse-Desktop)
