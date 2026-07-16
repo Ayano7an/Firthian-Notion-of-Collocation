@@ -184,8 +184,8 @@ const DEFAULT_SETTINGS: ThoughtSynapseSettings = {
     analyzeDuration: 0,
     containerHeight: 400,
     customStopWords: '',
-    useZhStopwords: true,
-    useEnStopwords: true,
+    useZhStopwords: false,
+    useEnStopwords: false,
     windowSize: 5,
     topN: 50,
     collocateRole: 'both',
@@ -201,7 +201,7 @@ function tokenize(text: string): string[] {
             .filter(s => s.isWordLike)
             .map(s => s.segment.toLowerCase().trim());
     }
-    return (text.match(/[一-龥]{2,}|\b[a-zA-Z]{3,}\b/g) || []).map(w => w.toLowerCase());
+    return (text.match(/[一-龥]{2,}|\b[a-zA-ZäöüÄÖÜß]{3,}\b/g) || []).map(w => w.toLowerCase());
 }
 
 function cleanText(content: string): string {
@@ -212,7 +212,7 @@ function cleanText(content: string): string {
         .replace(/https?:\/\/[^\s]+/g, ' ')
         .replace(/[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/g, ' ')
         .replace(/[0-9a-fA-F]{8,}/g, ' ')
-        .replace(/[^一-龥a-zA-Z]/g, ' ');
+        .replace(/[^一-龥a-zA-ZäöüÄÖÜß]/g, ' ');
 }
 
 function isContentWord(w: string): boolean {
@@ -335,32 +335,29 @@ class KWICModal extends Modal {
         const safeP = this.pivot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const safeQ = this.partner?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-        // Approximate char budget for window: avg ~4 chars/CJK token, ~6 chars/EN token
-        // Use a generous multiplier so we don't miss real window co-occurrences
-        const charBudget = this.windowSize * 8;
-
         for (const file of this.files) {
             const content = await this.app.vault.cachedRead(file);
-            const lines = content.split('\n');
 
             const matchingLines: { left: string; pivot: string; right: string }[] = [];
-            for (const line of lines) {
-                const re = new RegExp(safeP, 'gi');
-                let m: RegExpExecArray | null;
-                while ((m = re.exec(line)) !== null) {
-                    if (safeQ) {
-                        // require partner within charBudget chars of the pivot match
-                        const scanStart = Math.max(0, m.index - charBudget);
-                        const scanEnd = Math.min(line.length, m.index + m[0].length + charBudget);
-                        const vicinity = line.slice(scanStart, scanEnd);
-                        if (!new RegExp(safeQ, 'i').test(vicinity)) continue;
-                    }
-                    const ctx = 60;
-                    const left = line.slice(Math.max(0, m.index - ctx), m.index);
-                    const right = line.slice(m.index + m[0].length, m.index + m[0].length + ctx);
-                    matchingLines.push({ left, pivot: m[0], right });
-                    if (matchingLines.length >= 5) break;
+            const reP = new RegExp(safeP, 'gi');
+            let m: RegExpExecArray | null;
+            while ((m = reP.exec(content)) !== null) {
+                if (safeQ) {
+                    // check if partner appears within ±300 chars of pivot in raw text
+                    // (line breaks are irrelevant — tokenizer ignores them too)
+                    const start = Math.max(0, m.index - 300);
+                    const end = Math.min(content.length, m.index + m[0].length + 300);
+                    if (!new RegExp(safeQ, 'i').test(content.slice(start, end))) continue;
                 }
+                // for display: extract the line containing this pivot occurrence
+                const lineStart = content.lastIndexOf('\n', m.index - 1) + 1;
+                const lineEnd = content.indexOf('\n', m.index + m[0].length);
+                const line = content.slice(lineStart, lineEnd === -1 ? content.length : lineEnd);
+                const posInLine = m.index - lineStart;
+                const ctx = 60;
+                const left = line.slice(Math.max(0, posInLine - ctx), posInLine);
+                const right = line.slice(posInLine + m[0].length, posInLine + m[0].length + ctx);
+                matchingLines.push({ left, pivot: m[0], right });
                 if (matchingLines.length >= 5) break;
             }
 
