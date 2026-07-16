@@ -1,6 +1,6 @@
 {
   "name": "kwic",
-  "version": "0.0.1",
+  "version": "0.1.3",
   "description": "A Firthian collocation explorer grounded in corpus linguistics.",
   "main": "main.js",
   "scripts": {
