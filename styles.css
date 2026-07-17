@@ -166,6 +166,21 @@
     color: #0000EE;
 }
 
+/* ── TTR badge ─────────────────────────────────────────────────────────────── */
+.ts-ttr-badge {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+}
+
 /* ── Settings textarea ──────────────────────────────────────────────────────  */
 .ts-desktop-custom-textarea {
     width: 100%;

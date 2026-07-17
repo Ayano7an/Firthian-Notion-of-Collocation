@@ -121,13 +121,10 @@ var STRINGS = {
 };
 function detectLang() {
   var _a, _b;
-  const raw = (_b = (_a = window.localStorage) == null ? void 0 : _a.getItem("language")) != null ? _b : "";
+  const raw = typeof ((_a = window.moment) == null ? void 0 : _a.locale) === "function" ? window.moment.locale() : (_b = navigator.language) != null ? _b : "";
   if (raw.startsWith("de"))
     return "de";
-  if (raw.startsWith("zh") || raw === "") {
-    return raw.startsWith("zh") ? "zh" : "zh";
-  }
-  return "en";
+  return raw.startsWith("zh") || raw === "" ? "zh" : "en";
 }
 var t = STRINGS[detectLang()];
 var STOPWORDS_ZH = new Set(`\u3001\u3002\u3008\u3009\u300A\u300B\u4E00\u4E00\u4E2A\u4E00\u4E9B\u4E00\u4F55\u4E00\u5207\u4E00\u5219\u4E00\u65B9\u9762\u4E00\u65E6\u4E00\u6765\u4E00\u6837\u4E00\u79CD\u4E00\u822C\u4E00\u8F6C\u773C\u4E03\u4E07\u4E00\u4E09\u4E0A\u4E0A\u4E0B\u4E0B\u4E0D\u4EC5\u4E0D\u4F46\u4E0D\u5149\u4E0D\u5355\u4E0D\u53EA\u4E0D\u5916\u4E4E\u4E0D\u5982\u4E0D\u59A8\u4E0D\u5C3D\u4E0D\u5C3D\u7136\u4E0D\u5F97\u4E0D\u6015\u4E0D\u60DF\u4E0D\u6210\u4E0D\u62D8\u4E0D\u6599\u4E0D\u662F\u4E0D\u6BD4\u4E0D\u7136\u4E0D\u7279\u4E0D\u72EC\u4E0D\u7BA1\u4E0D\u81F3\u4E8E\u4E0D\u82E5\u4E0D\u8BBA\u4E0D\u8FC7\u4E0D\u95EE\u4E0E\u4E0E\u5176\u4E0E\u5176\u8BF4\u4E0E\u5426\u4E0E\u6B64\u540C\u65F6\u4E14\u4E14\u4E0D\u8BF4\u4E14\u8BF4\u4E24\u8005\u4E2A\u4E2A\u522B\u4E2D\u4E34\u4E3A\u4E3A\u4E86\u4E3A\u4EC0\u4E48\u4E3A\u4F55\u4E3A\u6B62\u4E3A\u6B64\u4E3A\u7740\u4E43\u4E43\u81F3\u4E43\u81F3\u4E8E\u4E48\u4E4B\u4E4B\u4E00\u4E4B\u6240\u4EE5\u4E4B\u7C7B\u4E4C\u4E4E\u4E4E\u4E58\u4E5D\u4E5F\u4E5F\u597D\u4E5F\u7F62\u4E86\u4E8C\u4E8C\u6765\u4E8E\u4E8E\u662F\u4E8E\u662F\u4E4E\u4E91\u4E91\u4E91\u5C14\u4E94\u4E9B\u4EA6\u4EBA\u4EBA\u4EEC\u4EBA\u5BB6\u4EC0\u4EC0\u4E48\u4EC0\u4E48\u6837\u4ECA\u4ECB\u4E8E\u4ECD\u4ECD\u65E7\u4ECE\u4ECE\u6B64\u4ECE\u800C\u4ED6\u4ED6\u4EBA\u4ED6\u4EEC\u4ED6\u4EEC\u4EEC\u4EE5\u4EE5\u4E0A\u4EE5\u4E3A\u4EE5\u4FBF\u4EE5\u514D\u4EE5\u53CA\u4EE5\u6545\u4EE5\u671F\u4EE5\u6765\u4EE5\u81F3\u4EE5\u81F3\u4E8E\u4EE5\u81F4\u4EEC\u4EFB\u4EFB\u4F55\u4EFB\u51ED\u4F1A\u4F3C\u7684\u4F46\u4F46\u51E1\u4F46\u662F\u4F55\u4F55\u4EE5\u4F55\u51B5\u4F55\u5904\u4F55\u65F6\u4F59\u5916\u4F5C\u4E3A\u4F60\u4F60\u4EEC\u4F7F\u4F7F\u5F97\u4F8B\u5982\u4F9D\u4F9D\u636E\u4F9D\u7167\u4FBF\u4E8E\u4FFA\u4FFA\u4EEC\u5018\u5018\u4F7F\u5018\u6216\u5018\u7136\u5018\u82E5\u501F\u501F\u50A5\u7136\u5047\u4F7F\u5047\u5982\u5047\u82E5\u505A\u50CF\u513F\u5148\u4E0D\u5148\u5149\u5149\u662F\u5168\u4F53\u5168\u90E8\u516B\u516D\u516E\u5171\u5173\u4E8E\u5173\u4E8E\u5177\u4F53\u5730\u8BF4\u5176\u5176\u4E00\u5176\u4E2D\u5176\u4E8C\u5176\u4ED6\u5176\u4F59\u5176\u5B83\u5176\u6B21\u5177\u4F53\u5730\u8BF4\u5177\u4F53\u8BF4\u6765\u517C\u4E4B\u5185\u518D\u518D\u5176\u6B21\u518D\u5219\u518D\u6709\u518D\u8005\u518D\u8005\u8BF4\u518D\u8BF4\u5192\u51B2\u51B5\u4E14\u51E0\u51E0\u65F6\u51E1\u51E1\u662F\u51ED\u51ED\u501F\u51FA\u4E8E\u51FA\u6765\u5206\u5206\u522B\u5219\u5219\u751A\u522B\u522B\u4EBA\u522B\u5904\u522B\u662F\u522B\u7684\u522B\u7BA1\u522B\u8BF4\u5230\u524D\u540E\u524D\u6B64\u524D\u8005\u52A0\u4E4B\u52A0\u4EE5\u533A\u5373\u5373\u4EE4\u5373\u4F7F\u5373\u4FBF\u5373\u5982\u5373\u6216\u5373\u82E5\u5374\u53BB\u53C8\u53C8\u53CA\u53CA\u53CA\u5176\u53CA\u81F3\u53CD\u4E4B\u53CD\u800C\u53CD\u8FC7\u6765\u53CD\u8FC7\u6765\u8BF4\u53D7\u5230\u53E6\u53E6\u4E00\u65B9\u9762\u53E6\u5916\u53E6\u6089\u53EA\u53EA\u5F53\u53EA\u6015\u53EA\u662F\u53EA\u6709\u53EA\u6D88\u53EA\u8981\u53EA\u9650\u53EB\u53EE\u549A\u53EF\u53EF\u4EE5\u53EF\u662F\u53EF\u89C1\u5404\u5404\u4E2A\u5404\u4F4D\u5404\u79CD\u5404\u81EA\u540C\u540C\u65F6\u540E\u540E\u8005\u5411\u5411\u4F7F\u5411\u7740\u5413\u5417\u5426\u5219\u5427\u5427\u54D2\u542B\u5431\u5440\u5443\u5455\u5457\u545C\u545C\u547C\u5462\u5475\u5475\u5475\u5478\u547C\u54E7\u548B\u548C\u549A\u54A6\u54A7\u54B1\u54B1\u4EEC\u54B3\u54C7\u54C8\u54C8\u54C8\u54C9\u54CE\u54CE\u5440\u54CE\u54DF\u54D7\u54DF\u54E6\u54E9\u54EA\u54EA\u4E2A\u54EA\u4E9B\u54EA\u513F\u54EA\u5929\u54EA\u5E74\u54EA\u6015\u54EA\u6837\u54EA\u8FB9\u54EA\u91CC\u54FC\u54FC\u5537\u5509\u552F\u6709\u554A\u5550\u5565\u5566\u556A\u8FBE\u5577\u5F53\u5582\u558F\u5594\u5537\u55BD\u55E1\u55E1\u55E1\u55EC\u55EF\u55F3\u560E\u560E\u767B\u5618\u561B\u563B\u563F\u563F\u563F\u56DB\u56E0\u56E0\u4E3A\u56E0\u4E86\u56E0\u6B64\u56E0\u7740\u56E0\u800C\u56FA\u7136\u5728\u5728\u4E0B\u5728\u4E8E\u5730\u57FA\u4E8E\u5904\u5728\u591A\u591A\u4E48\u591A\u5C11\u5927\u5927\u5BB6\u5979\u5979\u4EEC\u597D\u5982\u5982\u4E0A\u5982\u4E0A\u6240\u8FF0\u5982\u4E0B\u5982\u4F55\u5982\u5176\u5982\u540C\u5982\u662F\u5982\u679C\u5982\u6B64\u5982\u82E5\u59CB\u800C\u5B70\u6599\u5B70\u77E5\u5B81\u5B81\u53EF\u5B81\u613F\u5B81\u80AF\u5B83\u5B83\u4EEC\u5BF9\u5BF9\u4E8E\u5BF9\u5F85\u5BF9\u65B9\u5BF9\u6BD4\u5C06\u5C0F\u5C14\u5C14\u540E\u5C14\u5C14\u5C1A\u4E14\u5C31\u5C31\u662F\u5C31\u662F\u4E86\u5C31\u662F\u8BF4\u5C31\u7B97\u5C31\u8981\u5C3D\u5C3D\u7BA1\u5C3D\u7BA1\u5982\u6B64\u5C82\u4F46\u5DF1\u5DF2\u5DF2\u77E3\u5DF4\u5DF4\u5DF4\u5E74\u5E76\u5E76\u4E14\u5EB6\u4E4E\u5EB6\u51E0\u5F00\u5916\u5F00\u59CB\u5F52\u5F52\u9F50\u5F53\u5F53\u5730\u5F53\u7136\u5F53\u7740\u5F7C\u5F7C\u65F6\u5F7C\u6B64\u5F80\u5F85\u5F88\u5F97\u5F97\u4E86\u600E\u600E\u4E48\u600E\u4E48\u529E\u600E\u4E48\u6837\u600E\u5948\u600E\u6837\u603B\u4E4B\u603B\u7684\u6765\u770B\u603B\u7684\u6765\u8BF4\u603B\u7684\u8BF4\u6765\u603B\u800C\u8A00\u4E4B\u6070\u6070\u76F8\u53CD\u60A8\u60DF\u5176\u6162\u8BF4\u6211\u6211\u4EEC\u6216\u6216\u5219\u6216\u662F\u6216\u66F0\u6216\u8005\u622A\u81F3\u6240\u6240\u4EE5\u6240\u5728\u6240\u5E78\u6240\u6709\u624D\u624D\u80FD\u6253\u6253\u4ECE\u628A\u6291\u6216\u62FF\u6309\u6309\u7167\u6362\u53E5\u8BDD\u8BF4\u6362\u8A00\u4E4B\u636E\u636E\u6B64\u63A5\u7740\u6545\u6545\u6B64\u6545\u800C\u65C1\u4EBA\u65E0\u65E0\u5B81\u65E0\u8BBA\u65E2\u65E2\u5F80\u65E2\u662F\u65E2\u7136\u65E5\u65F6\u65F6\u5019\u662F\u662F\u4EE5\u662F\u7684\u66F4\u66FE\u66FF\u66FF\u4EE3\u6700\u6708\u6709\u6709\u4E9B\u6709\u5173\u6709\u53CA\u6709\u65F6\u6709\u7684\u671B\u671D\u671D\u7740\u672C\u672C\u4EBA\u672C\u5730\u672C\u7740\u672C\u8EAB\u6765\u6765\u7740\u6765\u81EA\u6765\u8BF4\u6781\u4E86\u679C\u7136\u679C\u771F\u67D0\u67D0\u4E2A\u67D0\u4E9B\u67D0\u67D0\u6839\u636E\u6B24\u6B63\u503C\u6B63\u5982\u6B63\u5DE7\u6B63\u662F\u6B64\u6B64\u5730\u6B64\u5904\u6B64\u5916\u6B64\u65F6\u6B64\u6B21\u6B64\u95F4\u6BCB\u5B81\u6BCF\u6BCF\u5F53\u6BD4\u6BD4\u53CA\u6BD4\u5982\u6BD4\u65B9\u6CA1\u5948\u4F55\u6CBF\u6CBF\u7740\u6F2B\u8BF4\u70B9\u7109\u7136\u5219\u7136\u540E\u7136\u800C\u7167\u7167\u7740\u72B9\u4E14\u72B9\u81EA\u751A\u4E14\u751A\u4E48\u751A\u6216\u751A\u800C\u751A\u81F3\u751A\u81F3\u4E8E\u7528\u7528\u6765\u7531\u7531\u4E8E\u7531\u662F\u7531\u6B64\u7531\u6B64\u53EF\u89C1\u7684\u7684\u786E\u7684\u8BDD\u76F4\u5230\u76F8\u5BF9\u800C\u8A00\u7701\u5F97\u770B\u7728\u773C\u7740\u7740\u5462\u77E3\u77E3\u4E4E\u77E3\u54C9\u79BB\u79D2\u79F0\u7ADF\u800C\u7B2C\u7B49\u7B49\u5230\u7B49\u7B49\u7B80\u8A00\u4E4B\u7BA1\u7C7B\u5982\u7D27\u63A5\u7740\u7EB5\u7EB5\u4EE4\u7EB5\u4F7F\u7EB5\u7136\u7ECF\u7ECF\u8FC7\u7ED3\u679C\u7ED9\u7EE7\u4E4B\u7EE7\u540E\u7EE7\u800C\u7EFC\u4E0A\u6240\u8FF0\u7F62\u4E86\u8005\u800C\u800C\u4E14\u800C\u51B5\u800C\u540E\u800C\u5916\u800C\u5DF2\u800C\u662F\u800C\u8A00\u80FD\u80FD\u5426\u817E\u81EA\u81EA\u4E2A\u513F\u81EA\u4ECE\u81EA\u5404\u513F\u81EA\u540E\u81EA\u5BB6\u81EA\u5DF1\u81EA\u6253\u81EA\u8EAB\u81F3\u81F3\u4E8E\u81F3\u4ECA\u81F3\u82E5\u81F4\u822C\u7684\u82E5\u82E5\u592B\u82E5\u662F\u82E5\u679C\u82E5\u975E\u83AB\u4E0D\u7136\u83AB\u5982\u83AB\u82E5\u867D\u867D\u5219\u867D\u7136\u867D\u8BF4\u88AB\u8981\u8981\u4E0D\u8981\u4E0D\u662F\u8981\u4E0D\u7136\u8981\u4E48\u8981\u662F\u8B6C\u55BB\u8B6C\u5982\u8BA9\u8BB8\u591A\u8BBA\u8BBE\u4F7F\u8BBE\u6216\u8BBE\u82E5\u8BDA\u5982\u8BDA\u7136\u8BE5\u8BF4\u8BF4\u6765\u8BF7\u8BF8\u8BF8\u4F4D\u8BF8\u5982\u8C01\u8C01\u4EBA\u8C01\u6599\u8C01\u77E5\u8D3C\u6B7B\u8D56\u4EE5\u8D76\u8D77\u8D77\u89C1\u8D81\u8D81\u7740\u8D8A\u662F\u8DDD\u8DDF\u8F83\u8F83\u4E4B\u8FB9\u8FC7\u8FD8\u8FD8\u662F\u8FD8\u6709\u8FD8\u8981\u8FD9\u8FD9\u4E00\u6765\u8FD9\u4E2A\u8FD9\u4E48\u8FD9\u4E48\u4E9B\u8FD9\u4E48\u6837\u8FD9\u4E48\u70B9\u513F\u8FD9\u4E9B\u8FD9\u4F1A\u513F\u8FD9\u513F\u8FD9\u5C31\u662F\u8BF4\u8FD9\u65F6\u8FD9\u6837\u8FD9\u6B21\u8FD9\u822C\u8FD9\u8FB9\u8FD9\u91CC\u8FDB\u800C\u8FDE\u8FDE\u540C\u9010\u6B65\u901A\u8FC7\u9075\u5FAA\u9075\u7167\u90A3\u90A3\u4E2A\u90A3\u4E48\u90A3\u4E48\u4E9B\u90A3\u4E48\u6837\u90A3\u4E9B\u90A3\u4F1A\u513F\u90A3\u513F\u90A3\u65F6\u90A3\u6837\u90A3\u822C\u90A3\u8FB9\u90A3\u91CC\u90FD\u9119\u4EBA\u9274\u4E8E\u9488\u5BF9\u963F\u9664\u9664\u4E86\u9664\u5916\u9664\u5F00\u9664\u6B64\u4E4B\u5916\u9664\u975E\u968F\u968F\u540E\u968F\u65F6\u968F\u7740\u96BE\u9053\u8BF4\u96F6\u975E\u975E\u4F46\u975E\u5F92\u975E\u7279\u975E\u72EC\u9760\u987A\u987A\u7740\u9996\u5148`.split(""));
@@ -184,8 +181,8 @@ var DEFAULT_SETTINGS = {
   analyzeDuration: 0,
   containerHeight: 400,
   customStopWords: "",
-  useZhStopwords: true,
-  useEnStopwords: true,
+  useZhStopwords: false,
+  useEnStopwords: false,
   windowSize: 5,
   topN: 50,
   collocateRole: "both"
@@ -196,10 +193,10 @@ function tokenize(text) {
     const seg = new intlNs.Segmenter("zh-CN", { granularity: "word" });
     return Array.from(seg.segment(text)).filter((s) => s.isWordLike).map((s) => s.segment.toLowerCase().trim());
   }
-  return (text.match(/[一-龥]{2,}|\b[a-zA-Z]{3,}\b/g) || []).map((w) => w.toLowerCase());
+  return (text.match(/[一-龥]{2,}|\b[a-zA-ZäöüÄÖÜß]{3,}\b/g) || []).map((w) => w.toLowerCase());
 }
 function cleanText(content) {
-  return content.replace(/`{3}[\s\S]*?`{3}/g, " ").replace(/---[\s\S]*?---/, " ").replace(/<[^>]*>?/gm, " ").replace(/https?:\/\/[^\s]+/g, " ").replace(/[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/g, " ").replace(/[0-9a-fA-F]{8,}/g, " ").replace(/[^一-龥a-zA-Z]/g, " ");
+  return content.replace(/`{3}[\s\S]*?`{3}/g, " ").replace(/---[\s\S]*?---/, " ").replace(/<[^>]*>?/gm, " ").replace(/https?:\/\/[^\s]+/g, " ").replace(/[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/g, " ").replace(/[0-9a-fA-F]{8,}/g, " ").replace(/[^一-龥a-zA-ZäöüÄÖÜß]/g, " ");
 }
 function isContentWord(w) {
   const isChinese = /[一-龥]/.test(w);
@@ -222,7 +219,7 @@ async function analyzeVaultData(app, settings) {
     files = files.filter((f) => f.stat.mtime >= cutoff);
   }
   if (files.length === 0)
-    return [];
+    return { pairs: [], ttr: 0 };
   const stopWords = buildStopWordsSet(settings);
   const W = settings.windowSize;
   const unigramCount = /* @__PURE__ */ new Map();
@@ -269,7 +266,8 @@ async function analyzeVaultData(app, settings) {
     results.push({ w1, w2, freq: o11, pmi, logLikelihood: ll, files: coocFiles.get(key) });
   }
   results.sort((a, b) => b.logLikelihood - a.logLikelihood);
-  return results.slice(0, settings.topN);
+  const ttr = N > 0 ? unigramCount.size / N : 0;
+  return { pairs: results.slice(0, settings.topN), ttr };
 }
 var KWICModal = class extends import_obsidian.Modal {
   constructor(app, pivot, partner, files, windowSize = 5) {
@@ -291,29 +289,26 @@ var KWICModal = class extends import_obsidian.Modal {
     const listContainer = contentEl.createDiv({ cls: "ts-list-container" });
     const safeP = this.pivot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const safeQ = (_a = this.partner) == null ? void 0 : _a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const charBudget = this.windowSize * 8;
     for (const file of this.files) {
       const content = await this.app.vault.cachedRead(file);
-      const lines = content.split("\n");
       const matchingLines = [];
-      for (const line of lines) {
-        const re = new RegExp(safeP, "gi");
-        let m;
-        while ((m = re.exec(line)) !== null) {
-          if (safeQ) {
-            const scanStart = Math.max(0, m.index - charBudget);
-            const scanEnd = Math.min(line.length, m.index + m[0].length + charBudget);
-            const vicinity = line.slice(scanStart, scanEnd);
-            if (!new RegExp(safeQ, "i").test(vicinity))
-              continue;
-          }
-          const ctx = 60;
-          const left = line.slice(Math.max(0, m.index - ctx), m.index);
-          const right = line.slice(m.index + m[0].length, m.index + m[0].length + ctx);
-          matchingLines.push({ left, pivot: m[0], right });
-          if (matchingLines.length >= 5)
-            break;
+      const reP = new RegExp(safeP, "gi");
+      let m;
+      while ((m = reP.exec(content)) !== null) {
+        if (safeQ) {
+          const start = Math.max(0, m.index - 300);
+          const end = Math.min(content.length, m.index + m[0].length + 300);
+          if (!new RegExp(safeQ, "i").test(content.slice(start, end)))
+            continue;
         }
+        const lineStart = content.lastIndexOf("\n", m.index - 1) + 1;
+        const lineEnd = content.indexOf("\n", m.index + m[0].length);
+        const line = content.slice(lineStart, lineEnd === -1 ? content.length : lineEnd);
+        const posInLine = m.index - lineStart;
+        const ctx = 60;
+        const left = line.slice(Math.max(0, posInLine - ctx), posInLine);
+        const right = line.slice(posInLine + m[0].length, posInLine + m[0].length + ctx);
+        matchingLines.push({ left, pivot: m[0], right });
         if (matchingLines.length >= 5)
           break;
       }
@@ -403,7 +398,7 @@ var WordSphereEngine = class {
     };
     this.container = container;
     this.radius = this.initRadius = radius;
-    this.canvas = activeDocument.createElement("canvas");
+    this.canvas = container.createEl("canvas");
     this.canvas.addClass("ts-canvas");
     this.canvas.setCssStyles({ position: "absolute", top: "0", left: "0", width: "100%", height: "100%" });
     this.container.appendChild(this.canvas);
@@ -652,11 +647,14 @@ var CollocationsPlugin = class extends import_obsidian.Plugin {
     this.injectedContainer = null;
     this.sphereEngine = null;
     this.cachedPairs = null;
+    this.cachedTTR = 0;
   }
   async onload() {
     await this.loadSettings();
     this.app.workspace.onLayoutReady(async () => {
-      this.cachedPairs = await analyzeVaultData(this.app, this.settings);
+      const result = await analyzeVaultData(this.app, this.settings);
+      this.cachedPairs = result.pairs;
+      this.cachedTTR = result.ttr;
       this.ensureInjection();
       this.registerInterval(window.setInterval(() => this.ensureInjection(), 1e3));
     });
@@ -677,7 +675,9 @@ var CollocationsPlugin = class extends import_obsidian.Plugin {
     await this.saveData(this.settings);
   }
   async refresh() {
-    this.cachedPairs = await analyzeVaultData(this.app, this.settings);
+    const result = await analyzeVaultData(this.app, this.settings);
+    this.cachedPairs = result.pairs;
+    this.cachedTTR = result.ttr;
     if (this.injectedContainer) {
       this.injectedContainer.remove();
       this.injectedContainer = null;
@@ -718,10 +718,12 @@ var CollocationsPlugin = class extends import_obsidian.Plugin {
       this.sphereEngine.destroy();
       this.sphereEngine = null;
     }
-    this.injectedContainer = activeDocument.createElement("div");
+    this.injectedContainer = createEl("div");
     this.injectedContainer.addClass("ts-desktop-parasitic-container");
     this.injectedContainer.style.height = `${this.settings.containerHeight}px`;
     const sphereDiv = this.injectedContainer.createDiv({ cls: "ts-desktop-heatmap-div" });
+    const ttrLabel = this.injectedContainer.createEl("div", { cls: "ts-ttr-badge" });
+    ttrLabel.setText(`TTR ${(this.cachedTTR * 100).toFixed(1)}%`);
     const wordTotalFreq = /* @__PURE__ */ new Map();
     const wordCollocates = /* @__PURE__ */ new Map();
     for (const pair of this.cachedPairs) {
@@ -786,14 +788,14 @@ var CollocationsPlugin = class extends import_obsidian.Plugin {
       var _a2;
       if (!((_a2 = wordCollocates.get(word)) == null ? void 0 : _a2.length))
         return;
-      const el = activeDocument.createElement("div");
+      const el = sphereDiv.createEl("div");
       el.innerText = word;
       const t2 = totalFreq / maxTotalFreq;
       const fontSize = minFont + t2 * (maxFont - minFont);
       const weight = String(Math.round((300 + t2 * 600) / 100) * 100);
       el.addEventListener("mouseenter", () => {
         var _a3;
-        clearTimeout(hoverTimeout);
+        window.clearTimeout(hoverTimeout);
         this.sphereEngine.hoveredTag = (_a3 = this.sphereEngine.tags.find((n) => n.el === el)) != null ? _a3 : null;
         this.sphereEngine.tags.forEach((o) => o.renderState = o.el === el ? "focused" : "dimmed");
         showCollocates(word, el);
@@ -839,17 +841,17 @@ var CollocationsSettingTab = class extends import_obsidian.PluginSettingTab {
       await this.plugin.saveSettings();
       void this.plugin.refresh();
     }));
-    new import_obsidian.Setting(containerEl).setName(t.labelWindow).setDesc(t.descWindow).addSlider((s) => s.setLimits(1, 20, 1).setValue(this.plugin.settings.windowSize).setDynamicTooltip().onChange(async (v) => {
+    new import_obsidian.Setting(containerEl).setName(t.labelWindow).setDesc(t.descWindow).addSlider((s) => s.setLimits(1, 20, 1).setValue(this.plugin.settings.windowSize).showTooltip().onChange(async (v) => {
       this.plugin.settings.windowSize = v;
       await this.plugin.saveSettings();
       void this.plugin.refresh();
     }));
-    new import_obsidian.Setting(containerEl).setName(t.labelTopN).setDesc(t.descTopN).addSlider((s) => s.setLimits(10, 200, 10).setValue(this.plugin.settings.topN).setDynamicTooltip().onChange(async (v) => {
+    new import_obsidian.Setting(containerEl).setName(t.labelTopN).setDesc(t.descTopN).addSlider((s) => s.setLimits(10, 200, 10).setValue(this.plugin.settings.topN).showTooltip().onChange(async (v) => {
       this.plugin.settings.topN = v;
       await this.plugin.saveSettings();
       void this.plugin.refresh();
     }));
-    new import_obsidian.Setting(containerEl).setName(t.labelHeight).addSlider((s) => s.setLimits(200, 800, 10).setValue(this.plugin.settings.containerHeight).setDynamicTooltip().onChange(async (v) => {
+    new import_obsidian.Setting(containerEl).setName(t.labelHeight).addSlider((s) => s.setLimits(200, 800, 10).setValue(this.plugin.settings.containerHeight).showTooltip().onChange(async (v) => {
       this.plugin.settings.containerHeight = v;
       await this.plugin.saveSettings();
       if (this.plugin.injectedContainer)

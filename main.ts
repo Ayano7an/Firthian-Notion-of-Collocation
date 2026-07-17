@@ -104,14 +104,12 @@ const STRINGS = {
 type Lang = keyof typeof STRINGS;
 
 function detectLang(): Lang {
-    const raw = (window as unknown as { localStorage: Storage }).localStorage
-        ?.getItem('language') ?? '';
+    // Use Obsidian's official locale API; fall back to navigator if unavailable
+    const raw: string = (typeof (window as unknown as { moment?: { locale(): string } }).moment?.locale === 'function')
+        ? (window as unknown as { moment: { locale(): string } }).moment.locale()
+        : navigator.language ?? '';
     if (raw.startsWith('de')) return 'de';
-    if (raw.startsWith('zh') || raw === '') {
-        // Obsidian stores 'zh' or 'zh-TW'; fall back to zh as default
-        return raw.startsWith('zh') ? 'zh' : 'zh';
-    }
-    return 'en';
+    return raw.startsWith('zh') || raw === '' ? 'zh' : 'en';
 }
 
 const t = STRINGS[detectLang()];
@@ -232,13 +230,15 @@ function logLikelihood(o11: number, o12: number, o21: number, o22: number): numb
     return 2 * (cell(o11, e11) + cell(o12, e12) + cell(o21, e21) + cell(o22, e22));
 }
 
-async function analyzeVaultData(app: App, settings: ThoughtSynapseSettings): Promise<CollocatePair[]> {
+interface AnalysisResult { pairs: CollocatePair[]; ttr: number; }
+
+async function analyzeVaultData(app: App, settings: ThoughtSynapseSettings): Promise<AnalysisResult> {
     let files = app.vault.getMarkdownFiles();
     if (settings.analyzeDuration > 0) {
         const cutoff = Date.now() - settings.analyzeDuration * 86400000;
         files = files.filter(f => f.stat.mtime >= cutoff);
     }
-    if (files.length === 0) return [];
+    if (files.length === 0) return { pairs: [], ttr: 0 };
 
     const stopWords = buildStopWordsSet(settings);
     const W = settings.windowSize;
@@ -297,7 +297,8 @@ async function analyzeVaultData(app: App, settings: ThoughtSynapseSettings): Pro
 
     // sort by log-likelihood (more robust than PMI for rare pairs)
     results.sort((a, b) => b.logLikelihood - a.logLikelihood);
-    return results.slice(0, settings.topN);
+    const ttr = N > 0 ? unigramCount.size / N : 0;
+    return { pairs: results.slice(0, settings.topN), ttr };
 }
 
 // ── KWIC Modal ─────────────────────────────────────────────────────────────────
@@ -455,7 +456,7 @@ class WordSphereEngine {
     constructor(container: HTMLElement, radius: number) {
         this.container = container;
         this.radius = this.initRadius = radius;
-        this.canvas = activeDocument.createElement('canvas');
+        this.canvas = container.createEl('canvas');
         this.canvas.addClass('ts-canvas');
         this.canvas.setCssStyles({ position: 'absolute', top: '0', left: '0', width: '100%', height: '100%' });
         this.container.appendChild(this.canvas);
@@ -618,12 +619,14 @@ export default class CollocationsPlugin extends Plugin {
     injectedContainer: HTMLElement | null = null;
     sphereEngine: WordSphereEngine | null = null;
     cachedPairs: CollocatePair[] | null = null;
+    cachedTTR = 0;
 
     async onload() {
         await this.loadSettings();
 
         this.app.workspace.onLayoutReady(async () => {
-            this.cachedPairs = await analyzeVaultData(this.app, this.settings);
+            const result = await analyzeVaultData(this.app, this.settings);
+            this.cachedPairs = result.pairs; this.cachedTTR = result.ttr;
             this.ensureInjection();
             this.registerInterval(window.setInterval(() => this.ensureInjection(), 1000));
         });
@@ -640,7 +643,7 @@ export default class CollocationsPlugin extends Plugin {
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as Partial<ThoughtSynapseSettings>);
     }
 
     async saveSettings() {
@@ -648,7 +651,8 @@ export default class CollocationsPlugin extends Plugin {
     }
 
     async refresh() {
-        this.cachedPairs = await analyzeVaultData(this.app, this.settings);
+        const result = await analyzeVaultData(this.app, this.settings);
+        this.cachedPairs = result.pairs; this.cachedTTR = result.ttr;
         if (this.injectedContainer) {
             this.injectedContainer.remove();
             this.injectedContainer = null;
@@ -682,11 +686,14 @@ export default class CollocationsPlugin extends Plugin {
         if (!this.cachedPairs || this.cachedPairs.length === 0) return;
         if (this.sphereEngine) { this.sphereEngine.destroy(); this.sphereEngine = null; }
 
-        this.injectedContainer = activeDocument.createElement('div');
+        this.injectedContainer = createEl('div');
         this.injectedContainer.addClass('ts-desktop-parasitic-container');
         this.injectedContainer.style.height = `${this.settings.containerHeight}px`;
 
         const sphereDiv = this.injectedContainer.createDiv({ cls: 'ts-desktop-heatmap-div' });
+        // TTR badge at bottom centre
+        const ttrLabel = this.injectedContainer.createEl('div', { cls: 'ts-ttr-badge' });
+        ttrLabel.setText(`TTR ${(this.cachedTTR * 100).toFixed(1)}%`);
 
         // ── Build word-level index from bigram pairs ──────────────────────────
         // wordTotalFreq: aggregate freq across all bigrams the word appears in
@@ -762,14 +769,14 @@ export default class CollocationsPlugin extends Plugin {
             // skip words with no qualifying bigram pairs after filtering
             if (!(wordCollocates.get(word)?.length)) return;
 
-            const el = activeDocument.createElement('div');
+            const el = sphereDiv.createEl('div');
             el.innerText = word;
             const t = totalFreq / maxTotalFreq;
             const fontSize = minFont + t * (maxFont - minFont);
             const weight = String(Math.round((300 + t * 600) / 100) * 100);
 
             el.addEventListener('mouseenter', () => {
-                clearTimeout(hoverTimeout);
+                window.clearTimeout(hoverTimeout);
                 this.sphereEngine!.hoveredTag = this.sphereEngine!.tags.find(n => n.el === el) ?? null;
                 this.sphereEngine!.tags.forEach(o => o.renderState = o.el === el ? 'focused' : 'dimmed');
                 showCollocates(word, el);
@@ -838,7 +845,7 @@ class CollocationsSettingTab extends PluginSettingTab {
             .addSlider(s => s
                 .setLimits(1, 20, 1)
                 .setValue(this.plugin.settings.windowSize)
-                .setDynamicTooltip()
+                .showTooltip()
                 .onChange(async v => {
                     this.plugin.settings.windowSize = v;
                     await this.plugin.saveSettings();
@@ -851,7 +858,7 @@ class CollocationsSettingTab extends PluginSettingTab {
             .addSlider(s => s
                 .setLimits(10, 200, 10)
                 .setValue(this.plugin.settings.topN)
-                .setDynamicTooltip()
+                .showTooltip()
                 .onChange(async v => {
                     this.plugin.settings.topN = v;
                     await this.plugin.saveSettings();
@@ -863,7 +870,7 @@ class CollocationsSettingTab extends PluginSettingTab {
             .addSlider(s => s
                 .setLimits(200, 800, 10)
                 .setValue(this.plugin.settings.containerHeight)
-                .setDynamicTooltip()
+                .showTooltip()
                 .onChange(async v => {
                     this.plugin.settings.containerHeight = v;
                     await this.plugin.saveSettings();

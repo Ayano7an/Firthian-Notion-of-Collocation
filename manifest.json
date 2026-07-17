@@ -1,9 +1,9 @@
 {
   "id": "kwic",
   "name": "Keyword in Context",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "minAppVersion": "1.10.0",
-  "description": "A Firthian collocation explorer grounded in corpus linguistics. Extracts habitual lexical patterns from your vault using sliding-window co-occurrence, PMI, and log-likelihood, then surfaces them as an interactive word sphere with KWIC concordance views.",
+  "description": "Firthian collocation explorer grounded in corpus linguistics. Extracts lexical patterns via sliding-window co-occurrence, PMI, and log-likelihood. Renders collocates as an interactive word sphere with KWIC concordance views.",
   "author": "ayano7an",
   "authorUrl": "https://github.com/ayano7an",
   "isDesktopOnly": true
